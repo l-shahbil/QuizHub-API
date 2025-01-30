@@ -1,0 +1,60 @@
+﻿# Build folders
+bin/
+obj/
+
+# User-specific files
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# VS Code settings
+.vscode/
+
+# Rider / IntelliJ settings
+.idea/
+
+# Visual Studio folder
+.vs/
+
+# Logs
+logs/
+*.log
+
+# Temporary files
+*.tmp
+*.temp
+*.cache
+*.pdb
+*.mdb
+*.pid
+*.stackdump
+
+# OS generated files
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Application settings
+appsettings.Development.json
+appsettings.Local.json
+secrets.json
+
+# Entity Framework migrations
+Migrations/
+
+# Published outputs
+publish/
+wwwroot/
+
+# Packages
+*.nupkg
+*.snupkg
+
+# Dependency folders
+node_modules/
+
+# Lock files
+*.lock
+project.lock.json
