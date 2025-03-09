@@ -13,7 +13,7 @@ namespace QuizHub.Models
         //Relationship
         public ICollection<Department> Departments { get; set; }
         public ICollection<Class> Classes { get; set; }
-        public ICollection<LearingOutcomes> LearingOutcomes { get; set; }
+        public ICollection<LearningOutcomes> LearingOutcomes { get; set; }
         public ICollection<Exam> Exams { get; set; }
 
     }

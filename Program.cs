@@ -9,6 +9,8 @@ using QuizHub.Data;
 using QuizHub.Data.Repository;
 using QuizHub.Data.Repository.Base;
 using QuizHub.Models;
+using QuizHub.Services.Admin_Services;
+using QuizHub.Services.Admin_Services.Interface;
 using QuizHub.Services.Authentication.Login_And_Sing_Up;
 using QuizHub.Services.Authentication.Login_And_Sing_Up.Interface;
 using QuizHub.Services.Authorization.Policies;
@@ -35,14 +37,28 @@ namespace QuizHub
                 options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"));
             });
 
-            builder.Services.AddIdentity<AppUser, IdentityRole>(options => options.SignIn.RequireConfirmedAccount = true)
+            builder.Services.AddIdentity<AppUser, IdentityRole>(options => {
+                options.SignIn.RequireConfirmedAccount = true;
+                options.Password.RequiredLength = 8;  
+                options.Password.RequireDigit = false; 
+                options.Password.RequireLowercase = false;  
+                options.Password.RequireUppercase = false;  
+                options.Password.RequireNonAlphanumeric = false;  
+                options.Password.RequiredUniqueChars = 1;
+            }
+            )
                .AddEntityFrameworkStores<ApplicationDbContext>().AddDefaultUI();
 
             //Add Repo Services
             builder.Services.AddTransient(typeof(IRepository<>), typeof(MainRepository<>));
 
             //Add college services
-            //builder.Services.AddScoped<ICollegeService, CollegeService>();
+            builder.Services.AddScoped<ICollegeService, CollegeService>();
+            builder.Services.AddScoped<IDepartmentService, DepartmentService>();
+            builder.Services.AddScoped<ISubAdminService, SubAdminService>();
+            builder.Services.AddScoped<ITeacherService, TeacherService>();
+            builder.Services.AddScoped<ISubjectService, SubjectService>();
+            builder.Services.AddScoped<ILearningOutComesService, LearningOutComesService>();
 
 
             //Add Cors services
@@ -54,8 +70,14 @@ namespace QuizHub
                 });
             });
 
-            // Add services to the container.
-            builder.Services.AddControllers();
+            // Add servicesservices to the container.
+            builder.Services.AddControllers()
+     .AddJsonOptions(options =>
+     {
+         options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
+     });
+
+
             // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
