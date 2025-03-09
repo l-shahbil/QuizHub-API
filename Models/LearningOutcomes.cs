@@ -4,7 +4,7 @@ using System.Runtime.InteropServices;
 
 namespace QuizHub.Models
 {
-    public class LearingOutcomes
+    public class LearningOutcomes
     {
         public int Id { get; set; }
         [Required, StringLength(50)]

@@ -1,4 +1,5 @@
-﻿using System.Linq.Expressions;
+﻿
+using System.Linq.Expressions;
 using System;
 using QuizHub.Data;
 using Microsoft.EntityFrameworkCore;
@@ -17,8 +18,12 @@ namespace QuizHub.Data.Repository
         }
         public async Task AddAsyncEntity(T entity)
         {
-            await _dbContext.Set<T>().AddAsync(entity);
-            _dbContext.SaveChanges();
+           
+
+                await _dbContext.Set<T>().AddAsync(entity);
+                _dbContext.SaveChanges();
+            
+           
         }
 
         public void DeleteEntity(T entity)
@@ -46,10 +51,10 @@ namespace QuizHub.Data.Repository
         public async Task<T> GetIncludeById(int id, params string[] agers)
         {
 
-            var table = _dbContext.Set<T>();
+            IQueryable<T> table = _dbContext.Set<T>();
             foreach (var ar in agers)
             {
-                table.Include(ar);
+              table = table.Include(ar);
             }
             var Item = await table.FirstOrDefaultAsync(e => EF.Property<int>(e, "Id") == id);
             return Item;
@@ -57,10 +62,10 @@ namespace QuizHub.Data.Repository
         public async Task<T> GetIncludeById(string id, params string[] agers)
         {
 
-            var table = _dbContext.Set<T>();
+            IQueryable<T> table = _dbContext.Set<T>();
             foreach (var ar in agers)
             {
-                table.Include(ar);
+               table = table.Include(ar);
             }
             var Item = await table.FirstOrDefaultAsync(e => EF.Property<string>(e, "Id") == id);
             return Item;
@@ -68,10 +73,10 @@ namespace QuizHub.Data.Repository
 
         public async Task<List<T>> GetAllIncludeAsync(params string[] agers)
         {
-            var table = _dbContext.Set<T>();
+            IQueryable<T> table = _dbContext.Set<T>();
             foreach (var ar in agers)
             {
-                table.Include(ar);
+                table =  table.Include(ar);
             }
             return await table.ToListAsync();
         }

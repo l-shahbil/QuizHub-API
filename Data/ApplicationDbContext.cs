@@ -19,7 +19,7 @@ namespace QuizHub.Data
         public DbSet<Batch> Batchs { get; set; }
         public DbSet<Class> Classes { get; set; }
         public DbSet<Subject> Subjects { get; set; }
-        public DbSet<LearingOutcomes> LearingOutcomes { get; set; }
+        public DbSet<LearningOutcomes> LearingOutcomes { get; set; }
         public DbSet<Question> Question { get; set; }
         public DbSet<Answer> Answers { get; set; }
         public DbSet<StudentAnswer> StudentAnswers { get; set; }

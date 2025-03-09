@@ -13,11 +13,12 @@ namespace QuizHub.Services.Admin_Services.Interface
         {
             _collegeRepo = collegeRepo;
         }
-        public async Task<College> AddCollegeAsync(CollegeDto model)
+        public async Task<College> AddCollegeAsync(CreateCollegeDto model)
         {
             var existingCollege = await _collegeRepo.SelecteOne(college => college.Name == model.Name);
             if (existingCollege != null)
             {
+
                 return null;
             }
 
@@ -42,7 +43,7 @@ namespace QuizHub.Services.Admin_Services.Interface
             return true;
         }
 
-        public async Task<College> EditCollegeAsync(int id, CollegeUpdateDto model)
+        public async Task<College> EditCollegeAsync(int id, UpdateCollegeDto model)
         {
             College college = await _collegeRepo.GetByIdAsync(id);
             if (college == null)
@@ -50,24 +51,41 @@ namespace QuizHub.Services.Admin_Services.Interface
                 return null;
             }
 
-            college.Name = model.Name;
-            college.Description = model.Description;
+            college.Name = model.Name ?? college.Name;
+            college.Description = model.Description ?? college.Description;
             _collegeRepo.UpdateEntity(college);
             return college;
         }
 
-        public async Task<List<College>> GetAllCollegesAsync()
+        public async Task<List<GetCollegeDto>> GetAllCollegesAsync()
         {
             List<College> colleges = await _collegeRepo.GetAllAsync();
-            return colleges;
+
+            var result = colleges.Select(c => new GetCollegeDto
+            {
+                Id = c.Id.ToString(),
+                Name = c.Name,
+                Description = c.Description,
+            }).ToList();
+
+            return result;
         }
 
-        public async Task<College> GetCollegeByIdAsync(int id)
+
+
+        public async Task<GetCollegeIncludeDto> GetCollegeByIdAsync(int id)
         {
             College existingCollege = await _collegeRepo.GetByIdAsync<int>(id);
             if (existingCollege != null)
             {
-                return await _collegeRepo.GetIncludeById(id, "Departments");
+                College college = await _collegeRepo.GetIncludeById(id, "Departments");
+                return new GetCollegeIncludeDto()
+                {
+                    Id = college.Id.ToString(),
+                    Name = college.Name,
+                    Description = college.Description,
+                    departmentName = college.Departments.Select(d => d.Name).ToList(),
+                };
             }
             return null;
         }

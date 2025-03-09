@@ -5,10 +5,10 @@ namespace QuizHub.Services.Admin_Services.Interface
 {
     public interface ICollegeService
     {
-        Task<List<College>> GetAllCollegesAsync();
-        Task<College> GetCollegeByIdAsync(int id);
-        Task<College> AddCollegeAsync(CollegeDto model);
-        Task<College> EditCollegeAsync(int id, CollegeUpdateDto model);
+        Task<List<GetCollegeDto>> GetAllCollegesAsync();
+        Task<GetCollegeIncludeDto> GetCollegeByIdAsync(int id);
+        Task<College> AddCollegeAsync(CreateCollegeDto model);
+        Task<College> EditCollegeAsync(int id, UpdateCollegeDto model);
         Task<bool> DeleteCollegeAsync(int id);
     }
 }

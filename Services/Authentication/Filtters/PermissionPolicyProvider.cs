@@ -23,6 +23,7 @@ namespace QuizHub.Services.Authorization.Policies
         }
 
         public Task<AuthorizationPolicy?> GetPolicyAsync(string policyName)
+
         {
             if (policyName.StartsWith(Permission.PermissionPolicyPrefix, StringComparison.OrdinalIgnoreCase))
             {

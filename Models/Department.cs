@@ -13,7 +13,7 @@ namespace QuizHub.Models
 
         //ForeignKey
 
-        public string subAdminId { get; set; }
+        public string? subAdminId { get; set; }
         public int collegeId { get; set; }
 
 

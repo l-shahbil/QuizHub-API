@@ -7,6 +7,7 @@ using QuizHub.Services.Admin_Services.Interface;
 namespace QuizHub.Controllers
 {
     [Route("api/[controller]")]
+
     [ApiController]
     public class CollegeController : ControllerBase
     {
@@ -20,7 +21,7 @@ namespace QuizHub.Controllers
         [Authorize("Permission.College.View")]
         public async Task<IActionResult> GetCollege()
         {
-            List<College> colleges = await _collegeService.GetAllCollegesAsync();
+            List<GetCollegeDto> colleges = await _collegeService.GetAllCollegesAsync();
             return Ok(colleges);
         }
 
@@ -29,7 +30,7 @@ namespace QuizHub.Controllers
         public async Task<IActionResult> GetCollegeById([FromRoute] int id)
         {
             
-            College college = await _collegeService.GetCollegeByIdAsync(id);
+            GetCollegeIncludeDto college = await _collegeService.GetCollegeByIdAsync(id);
             if (college != null)
                 return Ok(college);
             return NotFound();
@@ -37,7 +38,7 @@ namespace QuizHub.Controllers
 
         [HttpPost]
         [Authorize("Permission.College.Create")]
-        public async Task<IActionResult> AddCollege(CollegeDto model)
+        public async Task<IActionResult> AddCollege(CreateCollegeDto model)
         {
             if (model == null || !ModelState.IsValid)
             {
@@ -56,7 +57,7 @@ namespace QuizHub.Controllers
         }
         [HttpPut("{id}:int")]
         [Authorize("Permission.College.Edit")]
-        public async Task<IActionResult> EditCollege([FromRoute] int id, [FromBody] CollegeUpdateDto model)
+        public async Task<IActionResult> EditCollege([FromRoute] int id, [FromBody] UpdateCollegeDto model)
         {
             if (model==null || !ModelState.IsValid)
             {

@@ -8,7 +8,10 @@ namespace QuizHub.Models
         public int Id { get; set; }
         [Required, StringLength(50)]
         public string QuestionText { get; set; }
+        [Required,StringLength(10)]
         public decimal Difficulty { get; set; }
+        [Required, StringLength(10)]
+
         public decimal Discrimination { get; set; }
 
 
