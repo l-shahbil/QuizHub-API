@@ -5,7 +5,7 @@ namespace QuizHub.Services.Admin_Services.Interface
 {
     public interface ISubjectService
     {
-        Task<List<SubjectViewDto>> GetAllSubjectsAsync();
+        Task<List<SubjectViewDto>> GetAllSubjectsAsync(string userEmail);
         Task<SubjectViewDto> GetSubjectByIdAsync(int id);
         Task<SubjectViewDto> AddSubjectAsync(SubjectCreateDto model);
 

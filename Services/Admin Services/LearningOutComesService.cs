@@ -80,6 +80,7 @@ namespace QuizHub.Services.Admin_Services
                 Id = learingOutcomes.Id,
                 Title = learingOutcomes.Title,
                 Description = learingOutcomes.Description,
+
             };
         }
 

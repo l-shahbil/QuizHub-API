@@ -14,6 +14,8 @@ using QuizHub.Services.Admin_Services.Interface;
 using QuizHub.Services.Authentication.Login_And_Sing_Up;
 using QuizHub.Services.Authentication.Login_And_Sing_Up.Interface;
 using QuizHub.Services.Authorization.Policies;
+using QuizHub.Services.SubAdmin_Services;
+using QuizHub.Services.SubAdmin_Services.Interface;
 using System;
 using System.Text;
 
@@ -59,6 +61,7 @@ namespace QuizHub
             builder.Services.AddScoped<ITeacherService, TeacherService>();
             builder.Services.AddScoped<ISubjectService, SubjectService>();
             builder.Services.AddScoped<ILearningOutComesService, LearningOutComesService>();
+            builder.Services.AddScoped<IClassService, ClassService>();
 
 
             //Add Cors services
