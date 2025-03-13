@@ -1,12 +1,9 @@
-﻿using System.ComponentModel.DataAnnotations;
-
-namespace QuizHub.Models.DTO.Subject
+﻿namespace QuizHub.Models.DTO.Batch
 {
-    public class SubjectViewDto
+    public class BatchViewDto
     {
         public int Id { get; set; }
         public string Name { get; set; }
         public string Description { get; set; }
-
     }
 }

@@ -89,6 +89,7 @@ namespace QuizHub.Controllers
                     return NotFound(new { message = "Class not found." });
                 }
                 return NoContent();
+   
             }
             catch (UnauthorizedAccessException ex)
             {

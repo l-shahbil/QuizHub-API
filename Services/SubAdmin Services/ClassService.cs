@@ -28,7 +28,7 @@ namespace QuizHub.Services.SubAdmin_Services
             var existDepartment = await _departmentRepo.GetIncludeById(departmentId, "SubAdmin", "Subjects", "UserDepartments");
             
             if (existDepartment == null) {
-                throw new ArgumentException($"A Department with ID {subjectId} not found.");
+                throw new ArgumentException($"A Department with ID {departmentId} not found.");
             }
             if (existDepartment.SubAdmin.Email != subAdminEmail) 
             {
@@ -90,15 +90,15 @@ namespace QuizHub.Services.SubAdmin_Services
         {
 
             Class classs = await _classRepo.GetByIdAsync(id);
-            Department department = await _departmentRepo.GetIncludeById(classs.DepartmentId, "SubAdmin", "Subjects", "UserDepartments");
-            if (department.SubAdmin.Email != subAdminEmail)
-            {
-                throw new UnauthorizedAccessException("Access Denied: You are not the assigned SubAdmin for this department.");
-            }
-
             if (classs == null)
             {
                 return false;
+            }
+
+            Department department = await _departmentRepo.GetIncludeById(classs.DepartmentId, "SubAdmin");
+            if (department.SubAdmin.Email != subAdminEmail)
+            {
+                throw new UnauthorizedAccessException("Access Denied: You are not the assigned SubAdmin for this department.");
             }
 
             _classRepo.DeleteEntity(classs);
@@ -107,15 +107,15 @@ namespace QuizHub.Services.SubAdmin_Services
 
         public async Task<ClassViewDto> EditClasssAsync( ClassUpdateDto model, int id ,string subAdminEmail)
         {
-            Class clas = await _classRepo.GetByIdAsync(id);
-            Department department = await _departmentRepo.GetIncludeById(clas.DepartmentId, "SubAdmin");
+            var classs = await _classRepo.GetIncludeById(id, "Subject", "Teacher")
+             ?? throw new KeyNotFoundException($"Class with ID {id} not found.");
+            Department department = await _departmentRepo.GetIncludeById(classs.DepartmentId, "SubAdmin");
             if (department.SubAdmin.Email != subAdminEmail)
             {
                 throw new UnauthorizedAccessException("Access Denied: You are not the assigned SubAdmin for this department.");
             }
 
-            var classs = await _classRepo.GetIncludeById(id, "Subject", "Teacher")
-             ?? throw new KeyNotFoundException($"Class with ID {id} not found.");
+            
             var existClass = await _classRepo.SelecteOne(c => c.Name == model.Name);
             if (existClass != null)
             {
@@ -171,7 +171,7 @@ namespace QuizHub.Services.SubAdmin_Services
             var department = await _departmentRepo.GetIncludeById(departmentId, "SubAdmin");
             if (department == null)
             {
-                throw new ArgumentException($"A Subject with ID {departmentId} not found.");
+                throw new ArgumentException($"A Department with ID {departmentId} not found.");
             }
             if (department.SubAdmin.Email != subAdminEmail)
             {

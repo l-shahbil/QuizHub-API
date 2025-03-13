@@ -61,7 +61,10 @@ namespace QuizHub
             builder.Services.AddScoped<ITeacherService, TeacherService>();
             builder.Services.AddScoped<ISubjectService, SubjectService>();
             builder.Services.AddScoped<ILearningOutComesService, LearningOutComesService>();
+            builder.Services.AddScoped<ILearningOutComesService, LearningOutComesService>();
             builder.Services.AddScoped<IClassService, ClassService>();
+            builder.Services.AddScoped<IBatchService, BatchService>();
+
 
 
             //Add Cors services
