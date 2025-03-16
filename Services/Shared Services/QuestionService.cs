@@ -1,4 +1,4 @@
-﻿namespace QuizHub.Services.SubAdmin_Services
+﻿namespace QuizHub.Services.Shared_Services
 {
     public class QuestionService
     {
