@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.IdentityModel.Tokens;
+using NuGet.Protocol;
 using QuizHub.Models;
 using QuizHub.Models.DTO.Authentication;
 using QuizHub.Services.Authentication.Login_And_Sing_Up.Interface;
@@ -38,9 +39,10 @@ namespace QuizHub.Services.Authentication.Login_And_Sing_Up
 
             //Create Claims
             var Myclaims = new List<Claim>();
-            Myclaims.Add(new Claim(ClaimTypes.Name, userDto.userName));
+            Myclaims.Add(new Claim(ClaimTypes.Name, user.UserName));
             Myclaims.Add(new Claim(ClaimTypes.NameIdentifier, user.Id));
             Myclaims.Add(new Claim(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()));
+            Myclaims.Add(new Claim(ClaimTypes.Email, user.Email));
 
             //get role and permission
             var roles = await _userManager.GetRolesAsync(user);

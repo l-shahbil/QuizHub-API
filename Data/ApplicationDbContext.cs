@@ -100,6 +100,14 @@ namespace QuizHub.Data
                 .HasForeignKey(n => n.classId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            builder.Entity<ClassExam>()
+    .HasOne(ce => ce.Exam)
+    .WithMany(e => e.classExams)
+    .HasForeignKey(ce => ce.ExamId)
+    .OnDelete(DeleteBehavior.Restrict);
+ 
+
+
 
         }
 

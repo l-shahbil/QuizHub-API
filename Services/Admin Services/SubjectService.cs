@@ -1,5 +1,7 @@
-﻿using QuizHub.Data.Repository.Base;
+﻿using Microsoft.AspNetCore.Identity;
+using QuizHub.Data.Repository.Base;
 using QuizHub.Models;
+using QuizHub.Models.DTO.LearingOutComes;
 using QuizHub.Models.DTO.Subject;
 using QuizHub.Services.Admin_Services.Interface;
 
@@ -8,10 +10,14 @@ namespace QuizHub.Services.Admin_Services
     public class SubjectService : ISubjectService
     {
         private readonly IRepository<Subject> _subjectRepo;
+        private readonly IRepository<Department> _departmentRepo;
+        private readonly UserManager<AppUser> _userManger;
 
-        public SubjectService(IRepository<Subject> subjectRepo)
+        public SubjectService(IRepository<Subject> subjectRepo,IRepository<Department> departmentRepo,UserManager<AppUser> userManger)
         {
             _subjectRepo = subjectRepo;
+            _departmentRepo = departmentRepo;
+            _userManger = userManger;
         }
         public async Task<SubjectViewDto> AddSubjectAsync(SubjectCreateDto model)
         {
@@ -70,35 +76,77 @@ namespace QuizHub.Services.Admin_Services
             };
         }
 
-        public async Task<List<SubjectViewDto>> GetAllSubjectsAsync()
+        public async Task<List<SubjectViewDto>> GetAllSubjectsAsync(string userEmail)
         {
+           
+                var user = await _userManger.FindByEmailAsync(userEmail);
+                var roles = await _userManger.GetRolesAsync(user);
+                List<SubjectViewDto> subjects = new List<SubjectViewDto>();
 
-            List<SubjectViewDto> subjects = _subjectRepo.GetAllIncludeAsync("LearingOutcomes").Result.Select(s => new SubjectViewDto
-            {
-                Id = s.Id,
-                Name = s.Name,
-                Description = s.Description,
-                LearingOutComes = s.LearingOutcomes.Select(l => l.Title).ToList()
-                
-            }).ToList();
-            return subjects;
+                if (roles.Contains("Admin"))
+                {
+                subjects = _subjectRepo.GetAllAsync().Result.Select(s => new SubjectViewDto
+                {
+                    Id = s.Id,
+                    Name = s.Name,
+                    Description = s.Description
+                }).ToList();
+
+                    return subjects;
+                }
+                else if (roles.Contains("subAdmin"))
+                {
+                    var departments = await _departmentRepo.GetAllIncludeAsync("Subjects");
+
+                    subjects = departments
+                        .Where(d => d.subAdminId == user.Id)
+                        .SelectMany(d => d.Subjects)
+                        .Select(s => new SubjectViewDto
+                        {
+                            Id = s.Id,
+                            Name = s.Name,
+                            Description = s.Description
+                        }).ToList();
+                }
+
+                return subjects;
+            
         }
 
-        public async Task<SubjectViewDto> GetSubjectByIdAsync(int id)
+
+        public async Task<SubjectViewDetailsDto> GetSubjectByIdAsync(int id,string userEmail)
         {
             var subject = await _subjectRepo.GetIncludeById(id, "LearingOutcomes");
             if (subject == null)
             {
                 throw new ArgumentException("A Subject not found.");
             }
-            return new SubjectViewDto { 
-                Id = subject.Id,
-                Name = subject.Name,
-                Description = subject.Description,
-                LearingOutComes = subject.LearingOutcomes
-            .Select(l => $"ID: {l.Id}, Title: {l.Title}, Description: {l.Description}")
-            .ToList()
-            };
+            var user = await _userManger.FindByEmailAsync(userEmail);
+            var roles = await _userManger.GetRolesAsync(user);
+
+            if (roles.Contains("Admin"))
+            {
+                return new SubjectViewDetailsDto()
+                {
+                    Id = subject.Id,
+                    Name = subject.Name,
+                    Description = subject.Description,
+                    LearingOutComes = subject.LearingOutcomes.Select(l => $"ID: {l.Id}, Title: {l.Title}, Description: {l.Description}")
+                    .ToList()
+
+                };
+            }
+            //else if (roles.Contains("subAdmin"))
+            //{
+            //    var department
+
+            //    var departments = await _departmentRepo.GetAllIncludeAsync("Subjects");
+            //   var IsSubjectAssignedToDepartment
+            //}
+
+            return new SubjectViewDetailsDto();
+
         }
+    
     }
 }

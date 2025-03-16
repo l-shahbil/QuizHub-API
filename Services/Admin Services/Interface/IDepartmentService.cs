@@ -8,6 +8,7 @@ namespace QuizHub.Services.Admin_Services.Interface
 {
     public interface IDepartmentService
     {
+
         Task<List<DepartmentViewDto>> GetAllDepartmentsAsync();
         Task<DepartmentViewDto> GetDepartmentByIdAsync(int id);
         Task<DepartmentViewDto> AddDepartmentAsync(DepartmentCreateDto model);

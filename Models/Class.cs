@@ -11,14 +11,15 @@ namespace QuizHub.Models
         public string Description { get; set; }
 
         //Foreignkey
-        public string? UserId { get; set; }
+        public string TeacherId { get; set; }
+
         public int DepartmentId { get; set; }
-        public int? SubjectId { get; set; }
+        public int SubjectId { get; set; }
 
         //Relationships
         public ICollection<StudentClass> StudentClasses { get; set; }
-        [ForeignKey("UserId")]
-        public AppUser? User { get; set; }
+        [ForeignKey("TeacherId")]
+        public AppUser? Teacher { get; set; }
         [ForeignKey("DepartmentId")]
         public Department Department { get; set; }
         public ICollection<Notification> Notifications { get; set; }

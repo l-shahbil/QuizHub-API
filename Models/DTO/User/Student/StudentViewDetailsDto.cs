@@ -1,7 +1,6 @@
-﻿
-namespace QuizHub.Models.DTO.User.Teacher
+﻿namespace QuizHub.Models.DTO.User.Student
 {
-    public class GetTeacherDto
+    public class StudentViewDetailsDto
     {
         public string FirstName { get; set; }
         public string LastName { get; set; }
@@ -9,6 +8,5 @@ namespace QuizHub.Models.DTO.User.Teacher
         public string Password { get; set; }
         public DateTime RegistraionDate { get; set; }
         public DateTime DateOfBirth { get; set; }
-        public string DepartmentName { get; set; }
     }
 }

@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using QuizHub.Constant;
 using QuizHub.Models.DTO.Subject;
 using QuizHub.Services.Admin_Services.Interface;
+using System.Security.Claims;
 
 namespace QuizHub.Controllers
 {
@@ -70,25 +71,34 @@ namespace QuizHub.Controllers
         [Authorize("Permission.Subject.View")]
         public async Task<IActionResult> GetAllSubjectsAsync()
         {
-            var subjects = await _subjectService.GetAllSubjectsAsync();
-            return Ok(subjects); // 200 OK
+            try
+            {
+
+                var userEmail = User.FindFirst(ClaimTypes.Email).Value;
+                var subjects = await _subjectService.GetAllSubjectsAsync(userEmail);
+                return Ok(subjects); // 200 OK
+            }
+            catch (Exception ex) { 
+            
+                return BadRequest(ex.Message);
+            }
         }
 
         // GET: api/Subjects/GetSubjectById/{id}
-        [HttpGet("{id:int}",Name ="SubjectDetailsRoute")]
+        //[HttpGet("{id:int}",Name ="SubjectDetailsRoute")]
 
-        [Authorize("Permission.Subject.View")]
-        public async Task<IActionResult> GetSubjectByIdAsync(int id)
-        {
-            try
-            {
-                var subject = await _subjectService.GetSubjectByIdAsync(id);
-                return Ok(subject); // 200 OK
-            }
-            catch (ArgumentException ex)
-            {
-                return NotFound(ex.Message);
-            }
-        }
+        //[Authorize("Permission.Subject.View")]
+        //public async Task<IActionResult> GetSubjectByIdAsync(int id)
+        //{
+        //    try
+        //    {
+        //        var subject = await _subjectService.GetSubjectByIdAsync(id);
+        //        return Ok(subject); // 200 OK
+        //    }
+        //    catch (ArgumentException ex)
+        //    {
+        //        return NotFound(ex.Message);
+        //    }
+     }
     }
-}
+
