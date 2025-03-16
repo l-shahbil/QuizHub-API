@@ -1,8 +1,11 @@
-﻿using Microsoft.VisualBasic;
+﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.VisualBasic;
+using QuizHub.Constant;
 using QuizHub.Data.Repository.Base;
 using QuizHub.Models;
 using QuizHub.Models.DTO.Class;
 using QuizHub.Models.DTO.Subject;
+using QuizHub.Models.DTO.User.Student;
 using QuizHub.Services.SubAdmin_Services.Interface;
 
 namespace QuizHub.Services.SubAdmin_Services
@@ -11,26 +14,33 @@ namespace QuizHub.Services.SubAdmin_Services
     {
         private readonly IRepository<Class> _classRepo;
         private readonly IRepository<AppUser> _userRepo;
+        private readonly UserManager<AppUser> _userManager;
         private readonly IRepository<StudentClass> _studentClassRepo;
         private readonly IRepository<Subject> _subjectRepo;
         private readonly IRepository<Department> _departmentRepo;
+        private readonly IRepository<UserDepartment> _userDepartmentRepo;
+        private readonly IRepository<Batch> _batchRepo;
 
-        public ClassService(IRepository<Class> classRepo, IRepository<AppUser> userRepo, IRepository<StudentClass> studentClassRepo, IRepository<Subject> subjectRepo, IRepository<Department> departmentRepo)
+        public ClassService(IRepository<Class> classRepo, IRepository<AppUser> userRepo, UserManager<AppUser> userManager, IRepository<StudentClass> studentClassRepo, IRepository<Subject> subjectRepo, IRepository<Department> departmentRepo, IRepository<UserDepartment> userDepartmentRepo, IRepository<Batch> batchRepo)
         {
             _classRepo = classRepo;
             _userRepo = userRepo;
+            _userManager = userManager;
             _studentClassRepo = studentClassRepo;
             _subjectRepo = subjectRepo;
             _departmentRepo = departmentRepo;
+            _userDepartmentRepo = userDepartmentRepo;
+            _batchRepo = batchRepo;
         }
-        public async Task<ClassViewDto> AddClasssAsync(ClassCreateDto model, string subAdminEmail,int departmentId,int subjectId, string teacherEmail)
+        public async Task<ClassViewDto> AddClasssAsync(ClassCreateDto model, string subAdminEmail, int departmentId, int subjectId, string teacherEmail)
         {
             var existDepartment = await _departmentRepo.GetIncludeById(departmentId, "SubAdmin", "Subjects", "UserDepartments");
-            
-            if (existDepartment == null) {
+
+            if (existDepartment == null)
+            {
                 throw new ArgumentException($"A Department with ID {departmentId} not found.");
             }
-            if (existDepartment.SubAdmin.Email != subAdminEmail) 
+            if (existDepartment.SubAdmin.Email != subAdminEmail)
             {
                 throw new UnauthorizedAccessException("Access Denied: You are not the assigned SubAdmin for this department.");
             }
@@ -47,8 +57,8 @@ namespace QuizHub.Services.SubAdmin_Services
             {
                 throw new ArgumentException($"A Subject with ID {subjectId} not found.");
             }
-            var isAssingedSubjectToDepartment = existDepartment.Subjects.FirstOrDefault(s=> s.Name == existSubject.Name); 
-            if(isAssingedSubjectToDepartment == null)
+            var isAssingedSubjectToDepartment = existDepartment.Subjects.FirstOrDefault(s => s.Name == existSubject.Name);
+            if (isAssingedSubjectToDepartment == null)
             {
                 throw new ArgumentException($"A Subject not assigned to department.");
             }
@@ -86,7 +96,7 @@ namespace QuizHub.Services.SubAdmin_Services
             };
         }
 
-        public async Task<bool> DeleteClasssAsync(int id,string subAdminEmail)
+        public async Task<bool> DeleteClasssAsync(int id, string subAdminEmail)
         {
 
             Class classs = await _classRepo.GetByIdAsync(id);
@@ -105,7 +115,7 @@ namespace QuizHub.Services.SubAdmin_Services
             return true;
         }
 
-        public async Task<ClassViewDto> EditClasssAsync( ClassUpdateDto model, int id ,string subAdminEmail)
+        public async Task<ClassViewDto> EditClasssAsync(ClassUpdateDto model, int id, string subAdminEmail)
         {
             var classs = await _classRepo.GetIncludeById(id, "Subject", "Teacher")
              ?? throw new KeyNotFoundException($"Class with ID {id} not found.");
@@ -115,7 +125,7 @@ namespace QuizHub.Services.SubAdmin_Services
                 throw new UnauthorizedAccessException("Access Denied: You are not the assigned SubAdmin for this department.");
             }
 
-            
+
             var existClass = await _classRepo.SelecteOne(c => c.Name == model.Name);
             if (existClass != null)
             {
@@ -208,9 +218,9 @@ namespace QuizHub.Services.SubAdmin_Services
 
         public async Task<List<ClassViewDto>> GetAllClassesForStudentAsync(string userId)
         {
-            var studentClasses = await _studentClassRepo.GetAllAsync();
 
-            var classesForStudent =_classRepo.GetAllIncludeAsync("Teacher", "Subject", "Department").Result
+            var studentClasses = await _studentClassRepo.GetAllAsync();
+            var classesForStudent = _classRepo.GetAllIncludeAsync("Teacher", "Subject", "Department").Result
                 .Where(cls => studentClasses.Any(sc => sc.UserId == userId && sc.ClassId == cls.Id))
                 .ToList();
 
@@ -220,11 +230,187 @@ namespace QuizHub.Services.SubAdmin_Services
                 Name = cls.Name,
                 Description = cls.Description,
                 TeacherName = cls.Teacher?.Email,
-                SubjectName = cls.Subject?.Name  
+                SubjectName = cls.Subject?.Name
             }).ToList();
 
             return allClassForStudent;
         }
+
+        public async Task<bool> AddStudentToClass(int departmentId, string subAdminEmail, int classId, string studentEmail)
+        {
+            try
+            {
+
+            var department = await _departmentRepo.GetIncludeById(departmentId, "SubAdmin");
+            if (department == null)
+            {
+                throw new ArgumentException("Department not found.");
+            }
+            if (department.SubAdmin.Email != subAdminEmail)
+            {
+                throw new UnauthorizedAccessException("Access Denied: You are not the assigned SubAdmin for this department.");
+            }
+            var classs = await _classRepo.GetIncludeById(classId, "StudentClasses");
+            if (classs == null || classs.DepartmentId != departmentId)
+            {
+                throw new ArgumentException("Class not found.");
+
+            }
+            var student = await _userRepo.SelecteOne(s => s.Email == studentEmail);
+            var IsStudentInDepartment = _userDepartmentRepo.GetAllAsync().Result.FirstOrDefault(s => s.userId == student.Id && s.departmentId == departmentId);
+            if (student == null || IsStudentInDepartment == null || !_userManager.IsInRoleAsync(student, Roles.Student.ToString()).Result)
+            {
+                throw new ArgumentException("Student not found.");
+            }
+
+            var IsSudentInClass = _studentClassRepo.GetAllAsync().Result.FirstOrDefault(s => s.ClassId == classId && s.UserId == student.Id);
+
+            if (IsSudentInClass != null)
+            {
+                throw new ArgumentException("Student already exists in the class.");
+
+            }
+
+            StudentClass stdClass = new StudentClass()
+            {
+                Class = classs,
+                User = student
+            };
+
+            await _studentClassRepo.AddAsyncEntity(stdClass);
+
+            return true;
+            }catch(Exception ex)
+            {
+                throw new Exception(ex.Message);
+            }
+        }
+        public async Task<bool> DeleteStudentFromClass(int departmentId, string subAdminEmail, int classId, string studentEmail)
+        {
+            try
+            {
+
+                var department = await _departmentRepo.GetIncludeById(departmentId, "SubAdmin");
+                if (department == null)
+                {
+                    throw new ArgumentException("Department not found.");
+                }
+                if (department.SubAdmin.Email != subAdminEmail)
+                {
+                    throw new UnauthorizedAccessException("Access Denied: You are not the assigned SubAdmin for this department.");
+                }
+                var classs = await _classRepo.GetIncludeById(classId, "StudentClasses");
+                if (classs == null || classs.DepartmentId != departmentId)
+                {
+                    throw new ArgumentException("Class not found.");
+
+                }
+                var student = await _userRepo.SelecteOne(s => s.Email == studentEmail);
+                var IsStudentInDepartment = _userDepartmentRepo.GetAllAsync().Result.FirstOrDefault(s => s.userId == student.Id && s.departmentId == departmentId);
+                if (student == null || IsStudentInDepartment == null || !_userManager.IsInRoleAsync(student, Roles.Student.ToString()).Result)
+                {
+                    throw new ArgumentException("Student not found.");
+                }
+
+                var IsSudentInClass = _studentClassRepo.GetAllAsync().Result.FirstOrDefault(s => s.ClassId == classId && s.UserId == student.Id);
+
+                if (IsSudentInClass == null)
+                {
+                    throw new ArgumentException("Student not found in class.");
+
+                }
+
+
+
+                _studentClassRepo.DeleteEntity(IsSudentInClass);
+
+                return true;
+            }
+            catch (Exception ex) 
+            {
+                throw new Exception(ex.Message);
+            }
+        }
+        public async Task<bool> AddBatchToClass(int departmentId, string subAdminEmail, int classId, int batchId)
+        {
+            try
+            {
+
+            var department = await _departmentRepo.GetIncludeById(departmentId, "SubAdmin");
+            if (department == null)
+            {
+                throw new ArgumentException("Department not found.");
+            }
+            if (department.SubAdmin.Email != subAdminEmail)
+            {
+                throw new UnauthorizedAccessException("Access Denied: You are not the assigned SubAdmin for this department.");
+            }
+            var classs = await _classRepo.GetIncludeById(classId, "StudentClasses");
+            if (classs == null || classs.DepartmentId != departmentId)
+            {
+                throw new ArgumentException("Class not found.");
+
+            }
+
+            var batch = await _batchRepo.GetIncludeById(batchId, "Students");
+            if (batch == null || batch.DepartmentId != departmentId)
+            {
+                throw new ArgumentException("Batch not found.");
+
+            }
+
+
+
+                foreach (var student in batch.Students)
+                {
+                    StudentClass stdClass = new StudentClass()
+                    {
+                        Class = classs,
+                        User = student
+                    };
+                    if(classs.StudentClasses.FirstOrDefault(sc=> sc.UserId == student.Id) == null)
+                    {
+                         await _studentClassRepo.AddAsyncEntity(stdClass);
+                    }
+                }
+                return true;
+            }
+            catch (Exception ex) {
+                throw new Exception(ex.Message);
+            }
+            
+        }
+        public async Task<List<StudentViewDto>> GetAllStudentInClass(int departmentId, string subAdminEmail, int classId)
+        {
+
+            var department = await _departmentRepo.GetIncludeById(departmentId, "SubAdmin");
+            if (department == null)
+            {
+                throw new ArgumentException("Department not found.");
+            }
+            if (department.SubAdmin.Email != subAdminEmail)
+            {
+                throw new UnauthorizedAccessException("Access Denied: You are not the assigned SubAdmin for this department.");
+            }
+            var classs = await _classRepo.GetIncludeById(classId, "StudentClasses");
+            if (classs == null || classs.DepartmentId != departmentId)
+            {
+                throw new ArgumentException("Class not found.");
+
+            }
+
+            List<StudentViewDto> students = (await _userRepo.GetAllIncludeAsync("StudentClasses"))
+                .Where(s => s.StudentClasses.Any(sc => sc.ClassId == classs.Id))
+                .Select(s => new StudentViewDto
+                {
+                    Email = s.Email,
+                    FirstName = s.FirstName,
+                    LastName = s.LastName
+                })
+                .ToList();
+            return students;
+        }
+
 
     }
 }

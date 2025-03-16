@@ -107,7 +107,7 @@ namespace QuizHub.Controllers
         public async Task<ActionResult<List<ClassViewDto>>> GetAllClassesForUserAsync()
         {
             var userEmail = User.FindFirst(ClaimTypes.Email).Value;
-            var user =await _userManger.FindByEmailAsync(userEmail);
+            var user = await _userManger.FindByEmailAsync(userEmail);
             var userType = _userManger.GetRolesAsync(user).Result.FirstOrDefault();
 
             if (string.IsNullOrEmpty(userType))
@@ -158,5 +158,116 @@ namespace QuizHub.Controllers
                 return BadRequest(new { message = ex.Message });
             }
         }
+
+        [Authorize("Permission.Student.Create")]
+        [HttpPost("{departmentId:int}/{classId:int}/students")]
+            public async Task<IActionResult> AddStudentToClass(int departmentId, int classId, string studentEmail)
+            {
+            try
+            {
+                var subAdminEmail = User.FindFirst(ClaimTypes.Email)?.Value;
+                if (subAdminEmail == null)
+                {
+                    return Unauthorized("Invalid user token.");
+                }
+                await _classService.AddStudentToClass(departmentId, subAdminEmail, classId, studentEmail);
+                return Ok("Student added successfully.");
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Forbid(ex.Message);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (Exception ex) {
+                return BadRequest(ex.Message);
+            }
+            }
+        [Authorize("Permission.Student.Delete")]
+        [HttpDelete("{departmentId:int}/{classId:int}/students/{studentEmail}")]
+            public async Task<IActionResult> DeleteStudentFromClass(int departmentId,  int classId, string studentEmail)
+            {
+                try
+                {
+                var subAdminEmail = User.FindFirst(ClaimTypes.Email)?.Value;
+                if (subAdminEmail == null)
+                {
+                    return Unauthorized("Invalid user token.");
+                }
+                await _classService.DeleteStudentFromClass(departmentId, subAdminEmail, classId, studentEmail);
+                    return Ok("Student removed successfully.");
+                }
+                catch (UnauthorizedAccessException ex)
+                {
+                    return Forbid(ex.Message);
+                }
+                catch (ArgumentException ex)
+                {
+                    return BadRequest(ex.Message);
+                }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        [Authorize("Permission.Student.Create")]
+        [HttpPost("{departmentId:int}/{classId:int}/batches/{batchId:int}")]
+            public async Task<IActionResult> AddBatchToClass(int departmentId,  int classId, int batchId)
+            {
+                try
+                {
+                var subAdminEmail = User.FindFirst(ClaimTypes.Email)?.Value;
+                if (subAdminEmail == null)
+                {
+                    return Unauthorized("Invalid user token.");
+                }
+                await _classService.AddBatchToClass(departmentId, subAdminEmail, classId, batchId);
+                    return Ok("Batch added successfully.");
+                }
+                catch (UnauthorizedAccessException ex)
+                {
+                    return Forbid(ex.Message);
+                }
+                catch (ArgumentException ex)
+                {
+                    return BadRequest(ex.Message);
+                }
+                catch (Exception ex)
+                {
+                    return StatusCode(500, "An unexpected error occurred.");
+                }
+            }
+        [Authorize("Permission.Student.View")]
+        [HttpGet("{departmentId:int}/{classId:int}/students")]
+        public async Task<IActionResult> GetAllStudentInClass(int departmentId, int classId)
+        {
+            try
+            {
+                var subAdminEmail = User.FindFirst(ClaimTypes.Email)?.Value;
+                if (subAdminEmail == null)
+                {
+                    return Unauthorized("Invalid user token.");
+                }
+                var students = await _classService.GetAllStudentInClass(departmentId, subAdminEmail, classId);
+                return Ok(students);
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Forbid(ex.Message);
+            }
+            catch (ArgumentException ex)
+            {
+                return NotFound(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal Server Error: {ex.Message}");
+            }
+        }
     }
+    
+    
 }

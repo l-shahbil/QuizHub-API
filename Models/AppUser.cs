@@ -26,7 +26,7 @@ namespace QuizHub.Models
         public ICollection<UserDepartment> userDepartments { get; set; }
         public ICollection<Department> departments { get; set; }
         [ForeignKey("BatchId")]
-        //public Batch? Batch { get; set; }
+        public Batch? Batch { get; set; }
         public ICollection <StudentClass> StudentClasses { get;set; }
         //Teaches
         public ICollection<Class> Classes { get; set; }

@@ -1,20 +1,29 @@
-﻿using QuizHub.Data.Repository.Base;
+﻿using Microsoft.AspNetCore.Identity;
+using QuizHub.Constant;
+using QuizHub.Data.Repository.Base;
 using QuizHub.Models;
 using QuizHub.Models.DTO.Batch;
 using QuizHub.Models.DTO.Class;
+using QuizHub.Models.DTO.User.Student;
 using QuizHub.Services.SubAdmin_Services.Interface;
 
 namespace QuizHub.Services.SubAdmin_Services
 {
-    public class BatchService : IBatchService
+    public class BatchService :IBatchService
     {
         private readonly IRepository<Batch> _batchRepo;
         private readonly IRepository<Department> _departmentRepo;
+        private readonly IRepository<AppUser> _studentRepo;
+        private readonly IRepository<UserDepartment> _userDepartmentRepo;
+        private readonly UserManager<AppUser> _userManager;
 
-        public BatchService(IRepository<Batch> batchRepo,IRepository<Department> departmentRepo)
+        public BatchService(IRepository<Batch> batchRepo,IRepository<Department> departmentRepo,IRepository<AppUser> studentRepo,IRepository<UserDepartment> userDepartmentRepo,UserManager<AppUser> userManager)
         {
             _batchRepo = batchRepo;
             _departmentRepo = departmentRepo;
+            _studentRepo = studentRepo;
+            _userDepartmentRepo = userDepartmentRepo;
+            _userManager = userManager;
         }
 
         public async Task<BatchViewDto> AddBatchAsync(BatchCreateDto model, string subAdminEmail, int departmentId)
@@ -120,19 +129,21 @@ namespace QuizHub.Services.SubAdmin_Services
         }
         
 
-        public async Task<BatchViewDetailsDto> GetBatchById(int id,string subAdminEmail)
+        public async Task<BatchViewDetailsDto> GetBatchById(int id,int departmentId,string subAdminEmail)
         {
-
-            Batch batch = await _batchRepo.GetIncludeById(id, "Students");
-            if (batch == null)
+            var department = await _departmentRepo.GetIncludeById(departmentId, "SubAdmin");
+            if (department == null)
             {
-                throw new KeyNotFoundException($"Batch with ID {id} not found.");
+                throw new KeyNotFoundException($"A Department with ID {departmentId} not found.");
             }
-
-            Department department = await _departmentRepo.GetIncludeById(batch.DepartmentId, "SubAdmin");
             if (department.SubAdmin.Email != subAdminEmail)
             {
                 throw new UnauthorizedAccessException("Access Denied: You are not the assigned SubAdmin for this department.");
+            }
+            Batch batch = await _batchRepo.GetIncludeById(id, "Students");
+            if (batch == null || batch.DepartmentId != departmentId)
+            {
+                throw new KeyNotFoundException($"Batch with ID {id} not found.");
             }
 
             return new BatchViewDetailsDto
@@ -140,8 +151,103 @@ namespace QuizHub.Services.SubAdmin_Services
                 Id = batch.Id,
                 Name = batch.Name,
                 Description = batch.Description,
-                Students = batch.Students.ToList()
+                Students = batch.Students.Select(s => new StudentViewDto
+                {
+                    FirstName = s.FirstName,
+                    LastName = s.LastName,
+                    Email = s.Email
+                }).ToList()
             };
+        }
+       public async Task<List<StudentViewDto>> GetAllStudentInBatch(int departmentId, string subAdminEmail, int batchId)
+        {
+            var department = await _departmentRepo.GetIncludeById(departmentId, "SubAdmin");
+            if (department == null)
+            {
+                throw new ArgumentException("Department not found.");
+            }
+            if (department.SubAdmin.Email != subAdminEmail)
+            {
+                throw new UnauthorizedAccessException("Access Denied: You are not the assigned SubAdmin for this department.");
+            }
+            var batch = await _batchRepo.GetIncludeById(batchId, "Students");
+            if (batch == null || batch.DepartmentId != departmentId)
+            {
+                throw new ArgumentException("Batch not found.");
+
+            }
+            return batch.Students.Select(s => new StudentViewDto
+            {
+                FirstName = s.FirstName,
+                LastName = s.LastName,
+                Email = s.Email
+            }).ToList();
+        }
+        public async Task<bool> AddStudentToBatchAsync(int departmentId,string subAdminEmail,int batchId, string studentEmail)
+        {
+            var department = await _departmentRepo.GetIncludeById(departmentId, "SubAdmin");
+            if (department == null)
+            {
+                throw new ArgumentException("Department not found.");
+            }
+            if (department.SubAdmin.Email != subAdminEmail)
+            {
+                throw new UnauthorizedAccessException("Access Denied: You are not the assigned SubAdmin for this department.");
+            }
+            var batch = await _batchRepo.GetIncludeById(batchId, "Students");
+            if(batch == null || batch.DepartmentId != departmentId)
+            {
+                throw new ArgumentException("Batch not found.");
+
+            }
+            var student = await _studentRepo.SelecteOne(s=> s.Email == studentEmail);
+            var IsStudentInDepartment = _userDepartmentRepo.GetAllAsync().Result.FirstOrDefault(s=> s.userId == student.Id && s.departmentId == departmentId);
+            if (student == null || IsStudentInDepartment == null || !_userManager.IsInRoleAsync(student,Roles.Student.ToString()).Result)
+            {
+                throw new ArgumentException("Student not found.");
+            }
+
+            if (batch.Students.Contains(student))
+            {
+                throw new ArgumentException("Student already exists in the batch.");
+
+            }
+            
+            student.Batch = batch;
+
+            _studentRepo.UpdateEntity(student);
+
+            return true;
+        }
+
+       public async Task<bool> DeleteStudentFromBatchAsync(int departmentId,string subAdminEmail,int batchId, string studentEmail)
+        {
+            var department = await _departmentRepo.GetIncludeById(departmentId, "SubAdmin");
+            if (department == null)
+            {
+                throw new ArgumentException("Department not found.");
+            }
+            if (department.SubAdmin.Email != subAdminEmail)
+            {
+                throw new UnauthorizedAccessException("Access Denied: You are not the assigned SubAdmin for this department.");
+            }
+            var batch = await _batchRepo.GetIncludeById(batchId, "Students");
+            if (batch == null || batch.DepartmentId != departmentId)
+            {
+                throw new ArgumentException("Batch not found.");
+
+            }
+            var student = await _studentRepo.SelecteOne(s => s.Email == studentEmail);
+            if (student == null || student.BatchId != batch.Id)
+            {
+                throw new ArgumentException("Student not found.");
+            }
+
+            student.Batch = null;
+
+            _studentRepo.UpdateEntity(student);
+
+            return true;
         }
     }
 }
