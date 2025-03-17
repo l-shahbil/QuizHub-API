@@ -96,6 +96,8 @@ namespace QuizHub.Constant
                 allPermission.Add($"{PermissionPolicyPrefix}.{Modules.Exam}.Result");
                 allPermission.Add($"{PermissionPolicyPrefix}.{Modules.Exam}.Practices");
 
+                allPermission.Add($"{PermissionPolicyPrefix}.{Modules.Notification}.View");
+
             }
 
             foreach (var permission in allPermission)

@@ -209,7 +209,9 @@ namespace QuizHub.Services.SubAdmin_Services
        .Select(c => new ClassViewDto
        {
            Id = c.Id,
-           Name = c.Name
+           Name = c.Name,
+           TeacherName = user.Email,
+           SubjectName = _subjectRepo.GetByIdAsync(user.Classes.Select(c=> c.SubjectId)).Result.Name,
        })
        .ToList();
 

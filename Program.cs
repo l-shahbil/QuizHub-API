@@ -14,6 +14,8 @@ using QuizHub.Services.Admin_Services.Interface;
 using QuizHub.Services.Authentication.Login_And_Sing_Up;
 using QuizHub.Services.Authentication.Login_And_Sing_Up.Interface;
 using QuizHub.Services.Authorization.Policies;
+using QuizHub.Services.Shared_Services;
+using QuizHub.Services.Shared_Services.Interface;
 using QuizHub.Services.SubAdmin_Services;
 using QuizHub.Services.SubAdmin_Services.Interface;
 using System;
@@ -65,6 +67,7 @@ namespace QuizHub
             builder.Services.AddScoped<IClassService, ClassService>();
             builder.Services.AddScoped<IBatchService, BatchService>();
             builder.Services.AddScoped<IStudentService, StudentService>();
+            builder.Services.AddScoped<INotificationService, NotificationService>();
 
 
 

@@ -37,9 +37,9 @@ namespace QuizHub.Data.Seeds
 
         public static async Task seedClaimsToStudent(this RoleManager<IdentityRole> roleManager)
         {
-            var modules = new List<string> { Modules.Question.ToString(), Modules.Exam.ToString(), Modules.Notification.ToString() };
+            var modules = new List<string> { Modules.Question.ToString(), Modules.Exam.ToString() };
 
-            var role = await roleManager.FindByNameAsync(Roles.Teacher.ToString());
+            var role = await roleManager.FindByNameAsync(Roles.Student.ToString());
             await roleManager.addPermissionClaims(role, modules);
         }
     }
