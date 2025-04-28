@@ -106,7 +106,11 @@ namespace QuizHub.Data
     .HasForeignKey(ce => ce.ExamId)
     .OnDelete(DeleteBehavior.Restrict);
  
-
+            builder.Entity<Question>()
+                .HasOne(q=> q.leraningOutComes)
+                .WithMany(lrn => lrn.Questions)
+                .HasForeignKey(q=> q.learningOutComesId)
+                .OnDelete(DeleteBehavior.Restrict);
 
 
         }

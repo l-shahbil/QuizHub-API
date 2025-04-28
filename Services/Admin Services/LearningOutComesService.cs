@@ -115,7 +115,7 @@ namespace QuizHub.Services.Admin_Services
                 Title = leaerningOutComes.Title,
                 Description = leaerningOutComes.Description,
                 questions = leaerningOutComes.Questions
-            .Select(q => new QuestionViewDto{QuestionId = q.Id.ToString(),QuestionText = q.QuestionText, Discrimination =q.Discrimination, Difficulty =q.Difficulty})
+            .Select(q => new QuestionViewDto{QuestionId = q.Id,QuestionText = q.QuestionText, Discrimination =q.Discrimination, Difficulty =q.Difficulty})
             .ToList()
             };
         }

@@ -59,8 +59,9 @@ namespace QuizHub.Constant
                 allPermission.Add($"{PermissionPolicyPrefix}.{Modules.Department}.View");
 
                 allPermission.Add($"{PermissionPolicyPrefix}.{Modules.Exam}.Display Report");
-                allPermission.Add($"{PermissionPolicyPrefix}.{Modules.Subject}.View")
-                    ;
+                allPermission.Add($"{PermissionPolicyPrefix}.{Modules.Subject}.View");
+                allPermission.Add($"{PermissionPolicyPrefix}.{Modules.LearingOutcomes}.View");
+
                 allPermission.Add($"{PermissionPolicyPrefix}.{Modules.Student}.Add To Batch");
                 allPermission.Add($"{PermissionPolicyPrefix}.{Modules.Student}.Delete From Batch");
                 allPermission.Add($"{PermissionPolicyPrefix}.{Modules.Student}.Get All Student In Batch");
@@ -79,6 +80,7 @@ namespace QuizHub.Constant
                 allPermission.Add($"{PermissionPolicyPrefix}.{Modules.Exam}.Puplish Exam");
 
                 allPermission.Add($"{PermissionPolicyPrefix}.{Modules.Class}.View");
+                allPermission.Add($"{PermissionPolicyPrefix}.{Modules.LearingOutcomes}.View");
 
 
             }
@@ -95,6 +97,10 @@ namespace QuizHub.Constant
                 allPermission.Add($"{PermissionPolicyPrefix}.{Modules.Exam}.View Previous");
                 allPermission.Add($"{PermissionPolicyPrefix}.{Modules.Exam}.Result");
                 allPermission.Add($"{PermissionPolicyPrefix}.{Modules.Exam}.Practices");
+
+                allPermission.Add($"{PermissionPolicyPrefix}.{Modules.Notification}.View");
+                allPermission.Add($"{PermissionPolicyPrefix}.{Modules.LearingOutcomes}.View");
+
 
             }
 

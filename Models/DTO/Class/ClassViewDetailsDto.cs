@@ -11,6 +11,5 @@ namespace QuizHub.Models.DTO.Class
         public string SubAdminName { get; set; }
         public string SubjectName { get; set; }
         public List<StudentViewDto> Students { get; set; }
-        public ICollection<Notification> Notifications { get; set; }
     }
 }

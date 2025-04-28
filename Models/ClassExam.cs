@@ -1,13 +1,21 @@
-﻿using System.ComponentModel.DataAnnotations.Schema;
+﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace QuizHub.Models
 {
     public class ClassExam
     {
+        [Required]
         public decimal Score { get; set; }
+        [Required]
+
         public DateTime StartTime { get; set; }
+        [Required]
+
         public DateTime EndTime { get; set; }
-        public string Duration { get; set; }
+        [Required]
+
+        public TimeSpan Duration { get; set; }
 
 
         public int ClassId { get; set; }
