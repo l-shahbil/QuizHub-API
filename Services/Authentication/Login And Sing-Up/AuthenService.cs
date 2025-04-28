@@ -74,13 +74,15 @@ namespace QuizHub.Services.Authentication.Login_And_Sing_Up
             JwtSecurityToken myToken = new JwtSecurityToken(
                 issuer: _config["JWT:validIssure"],
                 audience: _config["JWT:validAudience"],
-                expires: DateTime.Now.AddHours(1),
+                expires: DateTime.Now.AddHours(24),
                 claims: Myclaims,
                 signingCredentials: singingCred
                 );
             return new JwtResponse
             {
                 Token = new JwtSecurityTokenHandler().WriteToken(myToken),
+                userType = roles.FirstOrDefault().ToString()
+                ,
                 Expiration = myToken.ValidTo
             };
 

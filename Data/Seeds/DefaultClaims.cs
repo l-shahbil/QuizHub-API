@@ -14,7 +14,7 @@ namespace QuizHub.Data.Seeds
         }
         public static async Task seedClaimsToAdmin(this RoleManager<IdentityRole> roleManager)
         {
-            var modules = new List<string> { Modules.College.ToString(), Modules.Department.ToString(), Modules.Teacher.ToString(), Modules.SubAdmin.ToString(), Modules.Subject.ToString() };
+            var modules = new List<string> { Modules.College.ToString(), Modules.Department.ToString(), Modules.Teacher.ToString(), Modules.SubAdmin.ToString(), Modules.Subject.ToString(),Modules.LearingOutcomes.ToString() };
 
             var role = await roleManager.FindByNameAsync(Roles.Admin.ToString());
             await roleManager.addPermissionClaims(role, modules);

@@ -6,7 +6,7 @@ namespace QuizHub.Models
     public class Exam
     {
         public string Id { get; set; }
-        [Required, StringLength(50)]
+        [Required]
         public string Title { get; set; }
         public string Description { get; set; }
         [Required]

@@ -205,13 +205,14 @@ namespace QuizHub.Services.SubAdmin_Services
         public async Task<List<ClassViewDto>> GetAllClassesForTeacherAsync(string userId)
         {
             var user = await _userRepo.GetIncludeById(userId, "Classes");
+
             var classes = user.Classes
        .Select(c => new ClassViewDto
        {
            Id = c.Id,
            Name = c.Name,
            TeacherName = user.Email,
-           SubjectName = _subjectRepo.GetByIdAsync(user.Classes.Select(c=> c.SubjectId)).Result.Name,
+           SubjectName = _subjectRepo.GetByIdAsync(user.Classes.Select(c => c.SubjectId).FirstOrDefault()).Result.Name,
        })
        .ToList();
 

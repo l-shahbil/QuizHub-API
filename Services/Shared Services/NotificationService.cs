@@ -23,71 +23,72 @@ namespace QuizHub.Services.Shared_Services
         }
         public async Task<NotificationViewDto> SendNotificationAsync(string userEmail, int departmentId, int classId, NotificationCreateDto model)
         {
-            Class cls = await _calssRepo.GetByIdAsync(classId);
-            if (cls == null || cls.DepartmentId != departmentId)
-            {
-                throw new KeyNotFoundException($"A Class with ID {classId} not found.");
-            }
-
-            var user = await _userManager.FindByEmailAsync(userEmail);
-            var roles = await _userManager.GetRolesAsync(user);
-            if (roles.Contains(Roles.SubAdmin.ToString()))
-            {
-                var existDepartment = await _departmentRepo.GetIncludeById(departmentId, "SubAdmin");
-                if (existDepartment == null)
+                Class cls = await _calssRepo.GetByIdAsync(classId);
+                if (cls == null || cls.DepartmentId != departmentId)
                 {
-                    throw new KeyNotFoundException($"A Department with ID {departmentId} not found.");
-                }
-                if (existDepartment.SubAdmin.Email != userEmail)
-                {
-                    throw new UnauthorizedAccessException("Access Denied: You are not the assigned SubAdmin for this department.");
+                    throw new KeyNotFoundException($"A Class with ID {classId} not found.");
                 }
 
-                Notification notification = new Notification()
+                var user = await _userManager.FindByEmailAsync(userEmail);
+                var roles = await _userManager.GetRolesAsync(user);
+                if (roles.Contains(Roles.SubAdmin.ToString()))
                 {
-                    Content = model.Content,
-                    CreateAt = DateTime.Now,
-                    User = user,
-                    Class = cls
-                };
+                    var existDepartment = await _departmentRepo.GetIncludeById(departmentId, "SubAdmin");
+                    if (existDepartment == null)
+                    {
+                        throw new KeyNotFoundException($"A Department with ID {departmentId} not found.");
+                    }
+                    if (existDepartment.SubAdmin.Email != userEmail)
+                    {
+                        throw new UnauthorizedAccessException("Access Denied: You are not the assigned SubAdmin for this department.");
+                    }
 
-                await _notificationRepo.AddAsyncEntity(notification);
-                return new NotificationViewDto
-                {
+                    Notification notification = new Notification()
+                    {
+                        Content = model.Content,
+                        CreateAt = DateTime.Now,
+                        User = user,
+                        Class = cls
+                    };
 
-                    Id = notification.Id,
-                    Content = notification.Content,
-                    sendTime = notification.CreateAt,
-                    senderEmail = userEmail
-                };
+                    await _notificationRepo.AddAsyncEntity(notification);
+                    return new NotificationViewDto
+                    {
 
-            }
-            else if (roles.Contains(Roles.Teacher.ToString()))
-            {
-                if (cls.TeacherId != user.Id)
-                {
-                    throw new UnauthorizedAccessException("Access Denied: You are not the assigned Teacher for this Class.");
+                        Id = notification.Id,
+                        Content = notification.Content,
+                        sendTime = notification.CreateAt,
+                        senderEmail = userEmail
+                    };
 
                 }
-                Notification notification = new Notification()
+                else if (roles.Contains(Roles.Teacher.ToString()))
                 {
-                    Content = model.Content,
-                    CreateAt = DateTime.Now,
-                    User = user,
-                    Class = cls
-                };
+                    if (cls.TeacherId != user.Id)
+                    {
+                        throw new UnauthorizedAccessException("Access Denied: You are not the assigned Teacher for this Class.");
 
-                await _notificationRepo.AddAsyncEntity(notification);
-                return new NotificationViewDto
-                {
+                    }
+                    Notification notification = new Notification()
+                    {
+                        Content = model.Content,
+                        CreateAt = DateTime.Now,
+                        User = user,
+                        Class = cls
+                    };
 
-                    Id = notification.Id,
-                    Content = notification.Content,
-                    sendTime = notification.CreateAt,
-                    senderEmail = userEmail
-                };
-            }
-            return null;
+                    await _notificationRepo.AddAsyncEntity(notification);
+                    return new NotificationViewDto
+                    {
+
+                        Id = notification.Id,
+                        Content = notification.Content,
+                        sendTime = notification.CreateAt,
+                        senderEmail = userEmail
+                    };
+                }
+
+                    return null;
 
         }
         public async Task<NotificationViewDto> EditNotificationAsync(string userEmail, int notificationId, NotificationEditDto model)
@@ -168,11 +169,9 @@ namespace QuizHub.Services.Shared_Services
                 return notification;
             }
             else if (roles.Contains(Roles.Student.ToString())){
-                if (cls.StudentClasses.Any(sc => sc.UserId != user.Id)) 
+                if (cls.StudentClasses.Any(sc => sc.UserId == user.Id)) 
                 {
-                    throw new ArgumentException("Not Found Class.");
-                }
-                var notification = _notificationRepo.GetAllAsync().Result.Where(n => n.classId == classId)
+                    var notification = _notificationRepo.GetAllAsync().Result.Where(n => n.classId == classId)
                     .Select(n => new NotificationViewDto
                     {
                         Id = n.Id,
@@ -180,7 +179,10 @@ namespace QuizHub.Services.Shared_Services
                         sendTime = n.CreateAt,
                         senderEmail = userEmail
                     }).ToList();
-                return notification;
+                    return notification;
+                }
+                    throw new ArgumentException("Not Found Class.");
+                
             }
             return null;
         }

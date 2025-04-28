@@ -36,6 +36,7 @@ namespace QuizHub.Controllers
                     return Ok(new
                     {
                         token = jwtResponse.Token,
+                        userType = jwtResponse.userType,
                         expiration = jwtResponse.Expiration
                     });
                 }

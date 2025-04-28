@@ -68,6 +68,10 @@ namespace QuizHub
             builder.Services.AddScoped<IBatchService, BatchService>();
             builder.Services.AddScoped<IStudentService, StudentService>();
             builder.Services.AddScoped<INotificationService, NotificationService>();
+            builder.Services.AddScoped<IQuestionService, QuestionService>();
+            builder.Services.AddScoped<IAnswerService, AnswerService>();
+            builder.Services.AddScoped<IExamService, ExamService>();
+            builder.Services.AddScoped<IExamValidator, ExamValidator>();
 
 
 
@@ -185,7 +189,9 @@ namespace QuizHub
                 app.UseSwaggerUI();
             }
 
-            app.UseHttpsRedirection();
+
+            app.UseCors("MyPolicy");
+            //app.UseHttpsRedirection();
 
             app.UseAuthentication();
             app.UseAuthorization();

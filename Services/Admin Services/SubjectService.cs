@@ -94,7 +94,7 @@ namespace QuizHub.Services.Admin_Services
 
                     return subjects;
                 }
-                else if (roles.Contains("subAdmin"))
+                else if (roles.Contains("SubAdmin"))
                 {
                     var departments = await _departmentRepo.GetAllIncludeAsync("Subjects");
 
