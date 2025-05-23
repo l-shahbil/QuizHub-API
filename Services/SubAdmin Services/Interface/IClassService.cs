@@ -6,7 +6,7 @@ namespace QuizHub.Services.SubAdmin_Services.Interface
     public interface IClassService
     {
         Task<List<ClassViewDto>> GetAllClassesForSubAdminAsync(int departmentId, string subAdminEmail);
-        Task<List<ClassViewDto>> GetAllClassesForTeacherAsync(string userId);
+        Task<List<ClassViewDto>> GetAllClassesForTeacherAsync(int departmentId, string userId);
         Task<List<ClassViewDto>> GetAllClassesForStudentAsync(string userId);
         Task<ClassViewDto> EditClasssAsync(ClassUpdateDto model, int id, string subAdminEmail);
 
@@ -16,6 +16,6 @@ namespace QuizHub.Services.SubAdmin_Services.Interface
         Task<bool> AddStudentToClass(int departmentId, string subAdminEmail, int classId, string studentEmail);
         Task<bool> DeleteStudentFromClass(int departmentId, string subAdminEmail, int classId, string studentEmail);
         Task<bool> AddBatchToClass(int departmentId, string subAdminEmail, int classId, int batchId);
-        Task<List<StudentViewDto>> GetAllStudentInClass(int departmentId, string subAdminEmail, int classId);
+        Task<List<StudentViewDto>> GetAllStudentInClass(int departmentId, string userEmail, int classId);
     }
 }

@@ -1,11 +1,13 @@
 ﻿using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Identity;
+using NuGet.DependencyResolver;
 using QuizHub.Constant;
 using QuizHub.Data.Repository.Base;
 using QuizHub.Models;
 using QuizHub.Models.DTO.College;
 using QuizHub.Models.DTO.User.SubAdmin;
 using System.Security.Policy;
+using System.Text.RegularExpressions;
 
 namespace QuizHub.Services.Admin_Services.Interface
 {
@@ -79,28 +81,54 @@ namespace QuizHub.Services.Admin_Services.Interface
             var subAdmin = await _userManager.FindByEmailAsync(userName);
             if (subAdmin == null)
             {
-                return null;
+                throw new ArgumentException("SubAdmin is not found");
             }
 
-            subAdmin.FirstName = model.FirstName ?? subAdmin.FirstName;
-            subAdmin.LastName = model.LastName ?? subAdmin.LastName;
-            subAdmin.Email = model.Email ?? subAdmin.Email;
-            subAdmin.UserName = model.Email ?? subAdmin.UserName;
-            subAdmin.DateOfBirth = model.DateOfBirth ?? subAdmin.DateOfBirth;
+            if (!string.IsNullOrEmpty(model.Email))
+            {
+                string emailPattern = @"^[^@\s]+@[^@\s]+\.[^@\s]+$";
+                if (!Regex.IsMatch(model.Email, emailPattern, RegexOptions.IgnoreCase))
+                {
+                    throw new ArgumentException("Invalid email address.");
+                }
+
+
+                var newSubAdmin = await _userManager.FindByEmailAsync(model.Email);
+                if (newSubAdmin != null)
+                {
+                    throw new ArgumentException("Username already exists.");
+
+                }
+
+                subAdmin.Email = model.Email;
+            }
+            subAdmin.FirstName = string.IsNullOrWhiteSpace(model.FirstName) ? subAdmin.FirstName : model.FirstName;
+            subAdmin.LastName = string.IsNullOrWhiteSpace(model.LastName) ? subAdmin.LastName : model.LastName;
+
+            if (model.DateOfBirth.HasValue && model.DateOfBirth > DateTime.UtcNow)
+            {
+                subAdmin.DateOfBirth = model.DateOfBirth.Value;
+            }
 
             if (!string.IsNullOrWhiteSpace(model.PassWord))
             {
+                if (model.PassWord.Length < 7)
+                {
+                    throw new ArgumentException("Password does not meet the requirements.");
 
+                }
                 var passwordChangeResult = await _userManager.RemovePasswordAsync(subAdmin);
                 if (!passwordChangeResult.Succeeded)
                 {
-                    return null;
+                    throw new ArgumentException("Password change failed.");
+
                 }
 
                 var addPasswordResult = await _userManager.AddPasswordAsync(subAdmin, model.PassWord);
                 if (!addPasswordResult.Succeeded)
                 {
-                    return null;
+                    throw new ArgumentException("Password change failed.");
+
                 }
             }
 

@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Identity;
 using QuizHub.Constant;
+using System.Reflection;
 
 namespace QuizHub.Data.Seeds
 {
@@ -22,7 +23,7 @@ namespace QuizHub.Data.Seeds
 
         public static async Task seedClaimsToSubAdmin(this RoleManager<IdentityRole> roleManager)
         {
-            var modules = new List<string> { Modules.Student.ToString(), Modules.Question.ToString(), Modules.Class.ToString(), Modules.Batch.ToString(), Modules.Notification.ToString() };
+            var modules = new List<string> { Modules.Student.ToString(), Modules.Question.ToString(), Modules.Class.ToString(), Modules.Batch.ToString(), Modules.Notification.ToString(), Modules.Exam.ToString() };
 
             var role = await roleManager.FindByNameAsync(Roles.SubAdmin.ToString());
             await roleManager.addPermissionClaims(role, modules);
@@ -37,10 +38,9 @@ namespace QuizHub.Data.Seeds
 
         public static async Task seedClaimsToStudent(this RoleManager<IdentityRole> roleManager)
         {
-            var modules = new List<string> { Modules.Question.ToString(), Modules.Exam.ToString() };
 
             var role = await roleManager.FindByNameAsync(Roles.Student.ToString());
-            await roleManager.addPermissionClaims(role, modules);
+            await roleManager.permessionForStudent();
         }
     }
 }

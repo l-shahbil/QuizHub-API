@@ -28,6 +28,9 @@ namespace QuizHub.Controller
 
         public async Task<IActionResult> CreateTeacherAsync([FromBody] CreateTeacherDto model)
         {
+            try
+            {
+
             var result = await _TeacherService.CreateTeacherAsync(model);
             if (result == null)
             {
@@ -35,6 +38,15 @@ namespace QuizHub.Controller
             }
             string url = Url.Link("TeacherDetailsRoute", new { email = result.Email });
             return Created(url, result);
+            }
+            catch(InvalidOperationException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
         }
         [Authorize("Permission.Teacher.Delete")]
         [HttpDelete("{userName}")]
@@ -61,7 +73,13 @@ namespace QuizHub.Controller
                 return BadRequest("Teacher not found or password update failed.");
             }
             return Ok(result);
-            }catch(Exception e)
+            }
+            catch(ArgumentException ex)
+            {
+                return BadRequest(ex.Message);
+
+            }
+            catch (Exception e)
             {
                 return BadRequest(e.Message);
             }

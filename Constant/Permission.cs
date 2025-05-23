@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Identity;
+using System.Data;
 using System.Security.Claims;
 
 namespace QuizHub.Constant
@@ -29,6 +30,35 @@ namespace QuizHub.Constant
 
             return allPermission;
         }
+        public static async Task permessionForStudent(this RoleManager<IdentityRole> roleManager)
+        {
+            var studentRole = await roleManager.FindByNameAsync(Roles.Student.ToString());
+            var allClaims = await roleManager.GetClaimsAsync(studentRole);
+            var allPermission = new List<string>();
+
+            allPermission.Add($"{PermissionPolicyPrefix}.{Modules.College}.View");
+            allPermission.Add($"{PermissionPolicyPrefix}.{Modules.Department}.View");
+            allPermission.Add($"{PermissionPolicyPrefix}.{Modules.Class}.View");
+            allPermission.Add($"{PermissionPolicyPrefix}.{Modules.Notification}.View");
+
+            allPermission.Add($"{PermissionPolicyPrefix}.{Modules.Exam}.View Available");
+            allPermission.Add($"{PermissionPolicyPrefix}.{Modules.Exam}.Take");
+            allPermission.Add($"{PermissionPolicyPrefix}.{Modules.Exam}.Submit");
+            allPermission.Add($"{PermissionPolicyPrefix}.{Modules.Exam}.View Previous");
+            allPermission.Add($"{PermissionPolicyPrefix}.{Modules.Exam}.Result");
+            allPermission.Add($"{PermissionPolicyPrefix}.{Modules.Exam}.Practices");
+
+            allPermission.Add($"{PermissionPolicyPrefix}.{Modules.Notification}.View");
+            allPermission.Add($"{PermissionPolicyPrefix}.{Modules.LearingOutcomes}.View");
+
+            foreach (var permission in allPermission)
+            {
+                if (!allClaims.Any(c => c.Type == PermissionPolicyPrefix && c.Value == permission))
+                {
+                    await roleManager.AddClaimAsync(studentRole, new Claim(PermissionPolicyPrefix, permission));
+                }
+            }
+        }
 
         public static async Task addPermissionClaims(this RoleManager<IdentityRole> roleManager, IdentityRole role, List<string> modules)
         {
@@ -51,6 +81,11 @@ namespace QuizHub.Constant
 
                 allPermission.Add($"{PermissionPolicyPrefix}.{Modules.Subject}.Add To Department");
                 allPermission.Add($"{PermissionPolicyPrefix}.{Modules.Subject}.Delete From Department");
+
+                allPermission.Add($"{PermissionPolicyPrefix}.{Modules.Subject}.Delete From Department");
+
+
+
             }
 
             else if (role.Name == Roles.SubAdmin.ToString())
@@ -58,7 +93,14 @@ namespace QuizHub.Constant
                 allPermission.Add($"{PermissionPolicyPrefix}.{Modules.College}.View");
                 allPermission.Add($"{PermissionPolicyPrefix}.{Modules.Department}.View");
 
+                allPermission.Add($"{PermissionPolicyPrefix}.{Modules.Teacher}.View");
+
                 allPermission.Add($"{PermissionPolicyPrefix}.{Modules.Exam}.Display Report");
+                allPermission.Add($"{PermissionPolicyPrefix}.{Modules.Exam}.Puplish Exam");
+                allPermission.Add($"{PermissionPolicyPrefix}.{Modules.Exam}.View Available");
+                allPermission.Add($"{PermissionPolicyPrefix}.{Modules.Exam}.Result");
+
+
                 allPermission.Add($"{PermissionPolicyPrefix}.{Modules.Subject}.View");
                 allPermission.Add($"{PermissionPolicyPrefix}.{Modules.LearingOutcomes}.View");
 
@@ -76,11 +118,17 @@ namespace QuizHub.Constant
 
                 allPermission.Add($"{PermissionPolicyPrefix}.{Modules.Exam}.Display Attendance");
                 allPermission.Add($"{PermissionPolicyPrefix}.{Modules.Exam}.Shedule Exam");
-                allPermission.Add($"{PermissionPolicyPrefix}.{Modules.Exam}.View Grade");
+                allPermission.Add($"{PermissionPolicyPrefix}.{Modules.Exam}.View Available");
+                allPermission.Add($"{PermissionPolicyPrefix}.{Modules.Exam}.Result");
                 allPermission.Add($"{PermissionPolicyPrefix}.{Modules.Exam}.Puplish Exam");
+                allPermission.Add($"{PermissionPolicyPrefix}.{Modules.Exam}.View");
+
+                allPermission.Add($"{PermissionPolicyPrefix}.{Modules.Subject}.View");
 
                 allPermission.Add($"{PermissionPolicyPrefix}.{Modules.Class}.View");
                 allPermission.Add($"{PermissionPolicyPrefix}.{Modules.LearingOutcomes}.View");
+
+                allPermission.Add($"{PermissionPolicyPrefix}.{Modules.Student}.View");
 
 
             }
@@ -91,9 +139,8 @@ namespace QuizHub.Constant
                 allPermission.Add($"{PermissionPolicyPrefix}.{Modules.Class}.View");
                 allPermission.Add($"{PermissionPolicyPrefix}.{Modules.Notification}.View");
 
-                allPermission.Add($"{PermissionPolicyPrefix}.{Modules.Exam}.View");
+                allPermission.Add($"{PermissionPolicyPrefix}.{Modules.Exam}.View Available");
                 allPermission.Add($"{PermissionPolicyPrefix}.{Modules.Exam}.Take");
-                allPermission.Add($"{PermissionPolicyPrefix}.{Modules.Exam}.View Previous");
                 allPermission.Add($"{PermissionPolicyPrefix}.{Modules.Exam}.View Previous");
                 allPermission.Add($"{PermissionPolicyPrefix}.{Modules.Exam}.Result");
                 allPermission.Add($"{PermissionPolicyPrefix}.{Modules.Exam}.Practices");

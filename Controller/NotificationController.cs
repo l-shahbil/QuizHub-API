@@ -38,7 +38,7 @@ namespace QuizHub.Api.Controllers
             }
             catch (UnauthorizedAccessException ex)
             {
-                return Forbid(ex.Message);
+                return StatusCode(403,ex.Message);
             }
             catch (Exception ex)
             {
@@ -65,7 +65,7 @@ namespace QuizHub.Api.Controllers
             }
             catch (UnauthorizedAccessException ex)
             {
-                return Forbid(ex.Message);
+                return StatusCode(403,ex.Message);
             }
             catch (Exception ex)
             {
@@ -91,7 +91,7 @@ namespace QuizHub.Api.Controllers
             }
             catch (UnauthorizedAccessException ex)
             {
-                return Forbid(ex.Message);
+                return StatusCode(403,ex.Message);
             }
             catch (Exception ex)
             {
@@ -117,7 +117,7 @@ namespace QuizHub.Api.Controllers
             }
             catch (UnauthorizedAccessException ex)
             {
-                return Forbid(ex.Message);
+                return StatusCode(403,ex.Message);
             }
             catch (Exception ex)
             {

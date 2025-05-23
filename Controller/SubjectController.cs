@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using QuizHub.Constant;
 using QuizHub.Models.DTO.Subject;
@@ -26,8 +27,8 @@ namespace QuizHub.Controllers
             try
             {
                 var result = await _subjectService.AddSubjectAsync(model);
-                var url = Url.Link("SubjectDetailsRoute",result.Id);
-                return Created(url,result);
+                var url = Url.Link("SubjectDetailsRoute", result.Id);
+                return Created(url, result);
             }
             catch (ArgumentException ex)
             {
@@ -78,27 +79,48 @@ namespace QuizHub.Controllers
                 var subjects = await _subjectService.GetAllSubjectsAsync(userEmail);
                 return Ok(subjects); // 200 OK
             }
-            catch (Exception ex) { 
-            
+            catch (Exception ex)
+            {
+
                 return BadRequest(ex.Message);
             }
         }
 
-        // GET: api/Subjects/GetSubjectById/{id}
-        //[HttpGet("{id:int}",Name ="SubjectDetailsRoute")]
+        [HttpGet("GetSubjectForTeacher")]
+        [Authorize("Permission.Subject.View")]
 
-        //[Authorize("Permission.Subject.View")]
-        //public async Task<IActionResult> GetSubjectByIdAsync(int id)
-        //{
-        //    try
-        //    {
-        //        var subject = await _subjectService.GetSubjectByIdAsync(id);
-        //        return Ok(subject); // 200 OK
-        //    }
-        //    catch (ArgumentException ex)
-        //    {
-        //        return NotFound(ex.Message);
-        //    }
-     }
+        public async Task<IActionResult> GetSubjectsForTeacher([FromQuery] int departmentId)
+        {
+            var teacherEmail = User.FindFirst(ClaimTypes.Email).Value;
+            var result = await _subjectService.GetSubjectForTeacher(teacherEmail, departmentId);
+
+            if (result == null)
+                return NotFound("Subjects not found or user is not a teacher.");
+
+            return Ok(result);
+        }
+
+        // GET: api/Subjects/GetSubjectById/{id}
+        [HttpGet("{id:int}", Name = "SubjectDetailsRoute")]
+
+        [Authorize("Permission.Subject.View")]
+        public async Task<IActionResult> GetSubjectByIdAsync(int id)
+        {
+            try
+            {
+
+                var subject = await _subjectService.GetSubjectByIdAsync(id);
+                return Ok(subject);
+            }
+            catch (ArgumentException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "An unexpected error occurred.", details = ex.Message });
+            }
+        }
     }
+}
 

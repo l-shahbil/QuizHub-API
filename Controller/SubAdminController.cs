@@ -35,13 +35,27 @@ namespace QuizHub.Controllers
 
         public async Task<IActionResult> CreateSubAdminAsync([FromBody] CreateSubAdminDto model)
         {
-            var result = await _subAdminService.CreateSubAdminAsync(model);
-            if (result == null)
+            try
             {
-                return BadRequest("SubAdmin already exists or invalid data.");
+                var result = await _subAdminService.CreateSubAdminAsync(model);
+
+                if (result == null)
+                {
+                    return Conflict(new { message = "SubAdmin with this email already exists." });
+                }
+
+                string url = Url.Link("SubAdminDetailsRoute", new { email = result.Email });
+                return Created(url, result);
             }
-            string url = Url.Link("SubAdminDetailsRoute", new { email = result.Email });
-            return Created(url, result);
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (Exception)
+            {
+                return StatusCode(500, new { message = "Internal server error" });
+            }
+           
         }
         [Authorize("Permission.SubAdmin.Delete")]
         [HttpDelete("{userName}")]
@@ -59,12 +73,25 @@ namespace QuizHub.Controllers
         [Authorize("Permission.SubAdmin.Edit")]
         public async Task<IActionResult> EditSubAdminAsync(string userName, [FromBody] UpdateSubAdminDto model)
         {
-            var result = await _subAdminService.EditSubAdminAsync(userName, model);
-            if (result == null)
+            try
             {
-                return BadRequest("SubAdmin not found or password update failed.");
+                var result = await _subAdminService.EditSubAdminAsync(userName, model);
+
+                if (result == null)
+                {
+                    return NotFound(new { message = "Failed to update SubAdmin." });
+                }
+
+                return Ok(result);
             }
-            return Ok(result);
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (Exception)
+            {
+                return StatusCode(500, new { message = "Internal server error" });
+            }
         }
 
         [HttpGet("{userName}", Name = "SubAdminDetailsRoute")]

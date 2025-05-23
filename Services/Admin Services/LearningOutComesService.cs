@@ -86,16 +86,20 @@ namespace QuizHub.Services.Admin_Services
 
         public async Task<List<LearningOutComesViewDto>> GetAllLearningOutComesAsync(int subjectId)
         {
-            var existSubject = await _subjectRepo.GetIncludeById(subjectId, "LearingOutcomes");
+            var existSubject = await _subjectRepo.GetByIdAsync(subjectId);
             if (existSubject == null)
             {
                 throw new KeyNotFoundException($"A Subject with ID {subjectId} not found.");
             }
-            var learningOutComes = existSubject.LearingOutcomes.Select(l => new LearningOutComesViewDto
+
+            List<LearningOutcomes> allLearningOutComes = await _learningOutComesRepo.GetAllIncludeAsync("Questions");
+
+            var learningOutComes = allLearningOutComes.Where(l=> l.subjectId == subjectId).Select(l => new LearningOutComesViewDto
             {
                 Id = l.Id,
                 Title = l.Title,
                 Description = l.Description,
+                QuestionCount = l.Questions.Count()
 
             }).ToList();
             return learningOutComes;

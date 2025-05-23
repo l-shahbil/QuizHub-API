@@ -1,6 +1,8 @@
 ﻿using Microsoft.AspNetCore.Identity;
 using Microsoft.CodeAnalysis.FlowAnalysis;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Writers;
+using NuGet.DependencyResolver;
 using QuizHub.Constant;
 using QuizHub.Data.Repository.Base;
 using QuizHub.Models;
@@ -8,7 +10,10 @@ using QuizHub.Models.DTO.User.Student;
 using QuizHub.Models.DTO.User.SubAdmin;
 using QuizHub.Models.DTO.User.Teacher;
 using QuizHub.Services.SubAdmin_Services.Interface;
+using QuizHub.Utils;
+using QuizHub.Utils.Interface;
 using System.Linq;
+using System.Text.RegularExpressions;
 
 namespace QuizHub.Services.SubAdmin_Services
 {
@@ -17,14 +22,25 @@ namespace QuizHub.Services.SubAdmin_Services
         private readonly IRepository<AppUser> _studentRepo;
         private readonly IRepository<Department> _departmentRepo;
         private readonly UserManager<AppUser> _userManager;
+        private readonly IRepository<Batch> _batchRepo;
+        private readonly IDeleteService _deleteServices;
         private readonly IRepository<UserDepartment> _userDepartmentRepo;
+        private readonly IRepository<StudentAnswers> _studentAnswerRepo;
+        private readonly IRepository<StudentExam> _studentExamRepo;
+        private readonly IRepository<StudentClass> _studentClassRepo;
 
-        public StudentService(IRepository<AppUser>studentRepo,IRepository<Department> departmentRepo,UserManager<AppUser> userManager,IRepository<UserDepartment> userDepartmentRepo)
+        public StudentService(IRepository<AppUser>studentRepo,IRepository<Department> departmentRepo,UserManager<AppUser> userManager,IRepository<Batch> batchRepo,IDeleteService deleteServices
+            ,IRepository<UserDepartment> userDepartmentRepo,IRepository<StudentAnswers> studentAnswerRepo,IRepository<StudentExam>studentExamRepo,IRepository<StudentClass> studentClassRepo)
         {
             _studentRepo = studentRepo;
             _departmentRepo = departmentRepo;
             _userManager = userManager;
+            _batchRepo = batchRepo;
+            _deleteServices = deleteServices;
             _userDepartmentRepo = userDepartmentRepo;
+            _studentAnswerRepo = studentAnswerRepo;
+            _studentExamRepo = studentExamRepo;
+            _studentClassRepo = studentClassRepo;
         }
         public async Task<StudentViewDetailsDto> CreateStudentAsync(StudentCreateDto model, string subAdminEmail,int departmentId)
         {
@@ -116,8 +132,7 @@ namespace QuizHub.Services.SubAdmin_Services
 
             }
 
-            _userDepartmentRepo.DeleteEntity(IsStudentInDepartment);
-            await _userManager.DeleteAsync(user);
+            await _deleteServices.deleteSudent(user);
             return true;
         }
 
@@ -140,25 +155,49 @@ namespace QuizHub.Services.SubAdmin_Services
 
             }
 
-            student.FirstName = string.IsNullOrWhiteSpace(model.FirstName) ? model.FirstName: student.FirstName;
-            student.LastName =string.IsNullOrWhiteSpace(model.LastName)? model.LastName:student.LastName;
-            student.Email =string.IsNullOrWhiteSpace(model.Email) ? model.Email: student.Email;
-            student.UserName =string.IsNullOrWhiteSpace(model.Email) ? model.Email: student.UserName;
-            student.DateOfBirth =model.DateOfBirth?? student.DateOfBirth;
+            if (!string.IsNullOrEmpty(model.Email))
+            {
+                string emailPattern = @"^[^@\s]+@[^@\s]+\.[^@\s]+$";
+                if (!Regex.IsMatch(model.Email, emailPattern, RegexOptions.IgnoreCase))
+                {
+                    throw new ArgumentException("Invalid email address.");
+                }
+
+
+                var newStudent = await _userManager.FindByEmailAsync(model.Email);
+                if (newStudent != null)
+                {
+                    throw new ArgumentException("Username already exists.");
+                }
+                student.Email = model.Email;
+            }
+
+            student.FirstName = string.IsNullOrWhiteSpace(model.FirstName) ? student.FirstName : model.FirstName;
+            student.LastName = string.IsNullOrWhiteSpace(model.LastName) ? student.LastName : model.LastName;
+            if (model.DateOfBirth.HasValue && model.DateOfBirth > DateTime.UtcNow)
+            {
+                student.DateOfBirth = model.DateOfBirth.Value;
+            }
+
+
 
             if (!string.IsNullOrWhiteSpace(model.PassWord))
             {
+                if (model.PassWord.Length < 7)
+                {
+                    throw new ArgumentException("Password does not meet the requirements.");
 
+                }
                 var passwordChangeResult = await _userManager.RemovePasswordAsync(student);
                 if (!passwordChangeResult.Succeeded)
                 {
-                    throw new InvalidOperationException("Failed to remove the current password.");
+                    throw new ArgumentException("Password change failed.");
                 }
 
                 var addPasswordResult = await _userManager.AddPasswordAsync(student, model.PassWord);
                 if (!addPasswordResult.Succeeded)
                 {
-                    throw new InvalidOperationException("Failed to add the new password.");
+                    throw new ArgumentException("Password change failed.");
                 }
             }
 
@@ -171,7 +210,6 @@ namespace QuizHub.Services.SubAdmin_Services
                 RegistraionDate = student.RegistraionDate,
                 DateOfBirth = student.DateOfBirth
             } : null;
-
         }
         
 
@@ -195,6 +233,7 @@ namespace QuizHub.Services.SubAdmin_Services
                     LastName = x.LastName,
                     Email = x.Email
                 });
+
             return filteredStudents;
         }
 
@@ -230,6 +269,11 @@ namespace QuizHub.Services.SubAdmin_Services
                 DateOfBirth = student.DateOfBirth,
                 RegistraionDate = student.RegistraionDate
             };
+        }
+        public async Task<int> GetStudentsCounts()
+        {
+            var students = await _userManager.GetUsersInRoleAsync(Roles.Student.ToString());
+            return students.Count();
         }
     }
 }

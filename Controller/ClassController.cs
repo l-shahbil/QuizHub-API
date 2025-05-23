@@ -104,7 +104,7 @@ namespace QuizHub.Controllers
         // GET: api/Class/forUser
         [HttpGet]
         [Authorize("Permission.Class.View")]
-        public async Task<ActionResult<List<ClassViewDto>>> GetAllClassesForUserAsync()
+        public async Task<ActionResult<List<ClassViewDto>>> GetAllClassesForUserAsync([FromQuery]int departmentId = 000000000)
         {
             var userEmail = User.FindFirst(ClaimTypes.Email).Value;
             var user = await _userManger.FindByEmailAsync(userEmail);
@@ -126,7 +126,8 @@ namespace QuizHub.Controllers
                         {
                             return Unauthorized(new { message = "SubAdmin Email is required." });
                         }
-                        classes = await _classService.GetAllClassesForSubAdminAsync(1, subAdminEmail);
+                      
+                        classes = await _classService.GetAllClassesForSubAdminAsync(departmentId, subAdminEmail);
                         break;
 
                     case "teacher":
@@ -135,7 +136,7 @@ namespace QuizHub.Controllers
                         {
                             return Unauthorized(new { message = "Teacher UserId is required." });
                         }
-                        classes = await _classService.GetAllClassesForTeacherAsync(teacherUserId);
+                        classes = await _classService.GetAllClassesForTeacherAsync(departmentId,teacherUserId);
                         break;
 
                     case "student":
@@ -159,8 +160,8 @@ namespace QuizHub.Controllers
             }
         }
 
-        [Authorize("Permission.Student.Create")]
         [HttpPost("{departmentId:int}/{classId:int}/students")]
+        [Authorize("Permission.Student.Create")]
             public async Task<IActionResult> AddStudentToClass(int departmentId, int classId, string studentEmail)
             {
             try
@@ -175,7 +176,7 @@ namespace QuizHub.Controllers
             }
             catch (UnauthorizedAccessException ex)
             {
-                return Forbid(ex.Message);
+                return StatusCode(403,ex.Message);
             }
             catch (ArgumentException ex)
             {
@@ -185,8 +186,8 @@ namespace QuizHub.Controllers
                 return BadRequest(ex.Message);
             }
             }
-        [Authorize("Permission.Student.Delete")]
         [HttpDelete("{departmentId:int}/{classId:int}/students/{studentEmail}")]
+        [Authorize("Permission.Student.Delete")]
             public async Task<IActionResult> DeleteStudentFromClass(int departmentId,  int classId, string studentEmail)
             {
                 try
@@ -201,7 +202,7 @@ namespace QuizHub.Controllers
                 }
                 catch (UnauthorizedAccessException ex)
                 {
-                    return Forbid(ex.Message);
+                    return StatusCode(403,ex.Message);
                 }
                 catch (ArgumentException ex)
                 {
@@ -213,8 +214,8 @@ namespace QuizHub.Controllers
             }
         }
 
-        [Authorize("Permission.Student.Create")]
         [HttpPost("{departmentId:int}/{classId:int}/batches/{batchId:int}")]
+        [Authorize("Permission.Student.Create")]
             public async Task<IActionResult> AddBatchToClass(int departmentId,  int classId, int batchId)
             {
                 try
@@ -229,7 +230,7 @@ namespace QuizHub.Controllers
                 }
                 catch (UnauthorizedAccessException ex)
                 {
-                    return Forbid(ex.Message);
+                    return StatusCode(403,ex.Message);
                 }
                 catch (ArgumentException ex)
                 {
@@ -240,23 +241,19 @@ namespace QuizHub.Controllers
                     return StatusCode(500, "An unexpected error occurred.");
                 }
             }
-        [Authorize("Permission.Student.View")]
         [HttpGet("{departmentId:int}/{classId:int}/students")]
+        [Authorize("Permission.Student.View")]
         public async Task<IActionResult> GetAllStudentInClass(int departmentId, int classId)
         {
             try
             {
-                var subAdminEmail = User.FindFirst(ClaimTypes.Email)?.Value;
-                if (subAdminEmail == null)
-                {
-                    return Unauthorized("Invalid user token.");
-                }
-                var students = await _classService.GetAllStudentInClass(departmentId, subAdminEmail, classId);
+                var userEmail = User.FindFirst(ClaimTypes.Email)?.Value;
+                var students = await _classService.GetAllStudentInClass(departmentId, userEmail, classId);
                 return Ok(students);
             }
             catch (UnauthorizedAccessException ex)
             {
-                return Forbid(ex.Message);
+                return StatusCode(403,ex.Message);
             }
             catch (ArgumentException ex)
             {

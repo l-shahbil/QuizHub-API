@@ -12,7 +12,8 @@ namespace QuizHub.Services.SubAdmin_Services.Interface
 ; Task<StudentViewDetailsDto> EditStudentAsync(string userName, StudentEditDto model, string subAdminEmail, int departmentId)
 ; Task<bool> DeleteStudentAsync(string userName, string subAdminEmail, int departmentId)
 ; Task<IEnumerable<StudentViewDto>> GetAllStudent(int departmentId, string subAdminEmail)
-; Task<StudentViewDetailsDto> GetStudentByNameAsync(int departmentId, string userName, string subAdminEmail)
-;
+; Task<StudentViewDetailsDto> GetStudentByNameAsync(int departmentId, string userName, string subAdminEmail);
+            Task<int> GetStudentsCounts();
+
     }
 }

@@ -15,5 +15,6 @@ namespace QuizHub.Services.SubAdmin_Services.Interface
         Task<List<StudentViewDto>> GetAllStudentInBatch(int departmentId, string subAdminEmail, int batchId);
         Task<bool> AddStudentToBatchAsync(int departmentId, string subAdminEmail, int batchId, string studentEmail);
         Task<bool> DeleteStudentFromBatchAsync(int departmentId, string subAdminEmail, int batchId, string studentEmail);
+        Task<bool> AddListStudentsToBatchAsync(int departmentId, string subAdminEmail, int batchId, List<string> studenstEmails);
     }
 }

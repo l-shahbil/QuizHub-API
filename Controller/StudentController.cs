@@ -18,8 +18,8 @@ namespace QuizHub.Controllers
         {
             _studentService = studentService;
         }
-        [Authorize("Permission.Student.Create")]
         [HttpPost]
+        [Authorize("Permission.Student.Create")]
         public async Task<ActionResult<StudentViewDetailsDto>> CreateStudent([FromBody] StudentCreateDto model, [FromQuery] int departmentId)
         {
             try
@@ -34,15 +34,15 @@ namespace QuizHub.Controllers
             }
             catch (UnauthorizedAccessException ex)
             {
-                return Forbid(ex.Message);
+                return StatusCode(403,ex.Message);
             }
             catch (Exception ex)
             {
                 return StatusCode(500, $"Internal server error: {ex.Message}");
             }
         }
-        [Authorize("Permission.Student.Delete")]
         [HttpDelete("delete/{userName}")]
+        [Authorize("Permission.Student.Delete")]
         public async Task<ActionResult> DeleteStudent(string userName, [FromQuery] int departmentId)
         {
             try
@@ -60,15 +60,15 @@ namespace QuizHub.Controllers
             }
             catch (UnauthorizedAccessException ex)
             {
-                return Forbid(ex.Message);
+                return StatusCode(403,ex.Message);
             }
             catch (Exception ex)
             {
                 return StatusCode(500, $"Internal server error: {ex.Message}");
             }
         }
-        [Authorize("Permission.Student.Edit")]
         [HttpPut("edit/{userName}")]
+        [Authorize("Permission.Student.Edit")]
         public async Task<ActionResult<StudentViewDetailsDto>> EditStudent(string userName, [FromBody] StudentEditDto model, [FromQuery] int departmentId)
         {
             try
@@ -87,15 +87,15 @@ namespace QuizHub.Controllers
             }
             catch (UnauthorizedAccessException ex)
             {
-                return Forbid(ex.Message);
+                return StatusCode(403,ex.Message);
             }
             catch (Exception ex)
             {
                 return StatusCode(500, $"Internal server error: {ex.Message}");
             }
         }
-        [Authorize("Permission.Student.View")]
         [HttpGet("all")]
+        [Authorize("Permission.Student.View")]
         public async Task<ActionResult<IEnumerable<StudentViewDto>>> GetAllStudents([FromQuery] int departmentId)
         {
             try
@@ -111,7 +111,7 @@ namespace QuizHub.Controllers
             }
             catch (UnauthorizedAccessException ex)
             {
-                return Forbid(ex.Message);
+                return StatusCode(403,ex.Message);
             }
             catch (Exception ex)
             {
@@ -119,8 +119,8 @@ namespace QuizHub.Controllers
             }
         }
 
-        [Authorize("Permission.Student.View")]
         [HttpGet("{userName}")]
+        [Authorize("Permission.Student.View")]
         public async Task<ActionResult<StudentViewDetailsDto>> GetStudentByName(int departmentId, string userName)
         {
             try
@@ -136,12 +136,20 @@ namespace QuizHub.Controllers
             }
             catch (UnauthorizedAccessException ex)
             {
-                return Forbid(ex.Message);
+                return StatusCode(403,ex.Message);
             }
             catch (Exception ex)
             {
                 return StatusCode(500, $"Internal server error: {ex.Message}");
             }
+        }
+
+        [HttpGet("studentsCounts")]
+        [Authorize]
+        public async Task<ActionResult> GetStudentsCounts()
+        {
+            int studentsCount = await _studentService.GetStudentsCounts();
+            return Ok(studentsCount);
         }
     }
 }

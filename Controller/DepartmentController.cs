@@ -1,9 +1,11 @@
 ﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using QuizHub.Models;
 using QuizHub.Models.DTO.Department;
 using QuizHub.Models.DTO.User.Teacher;
 using QuizHub.Services.Admin_Services.Interface;
+using System.Security.Claims;
 
 namespace QuizHub.Controllers
 {
@@ -37,6 +39,27 @@ namespace QuizHub.Controllers
                 return Ok(department);
             return NotFound();
         }
+        [HttpGet("ByCollege/{collegeId}")]
+        [Authorize("Permission.Department.View")]
+        public async Task<ActionResult<List<DepartmentViewDto>>> GetDepartmentsByCollegeId(int collegeId)
+        {
+            try
+            {
+                var userEmail = User.FindFirst(ClaimTypes.Email).Value;
+                var departments = await _departmentService.getDepartmentByCollegeId(userEmail, collegeId);
+
+                return Ok(departments);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "An unexpected error occurred.", details = ex.Message });
+            }
+        }
+
 
         [HttpPost]
         [Authorize("Permission.Department.Create")]
@@ -130,12 +153,23 @@ namespace QuizHub.Controllers
         [Authorize("Permission.Teacher.View")]
         public async Task<IActionResult> GetAllTeachersInDepartment(int departmentId)
         {
-            var teachers = await _departmentService.GetAllTeachersInDepartmentAsync(departmentId);
-            if (teachers == null || !teachers.Any())
+            try
             {
-                return NotFound("No teachers found for this department.");
+                var teachers = await _departmentService.GetAllTeachersInDepartmentAsync(departmentId);
+                return Ok(teachers);
             }
-            return Ok(teachers);
+            catch (KeyNotFoundException knf)
+            {
+                return NotFound(knf.Message);
+            }
+            catch (UnauthorizedAccessException ua)
+            {
+                return Forbid(ua.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal Server Error: {ex.Message}");
+            }
         }
 
 

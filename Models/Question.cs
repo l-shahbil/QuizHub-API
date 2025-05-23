@@ -22,7 +22,7 @@ namespace QuizHub.Models
 
         //RelationShips
         public ICollection<Answer> Answers { get; set; }
-        public ICollection<StudentAnswer> StudentAnswers { get; set; }
+        public ICollection<StudentAnswers> StudentAnswers { get; set; }
         [ForeignKey("userId")]
         public AppUser User { get; set; }
         public ICollection<ExamQuestion> ExamQuestions { get; set; }

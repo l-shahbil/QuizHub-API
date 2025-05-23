@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Identity;
+﻿using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Identity;
 using QuizHub.Constant;
 using QuizHub.Data.Repository.Base;
 using QuizHub.Models;
@@ -45,6 +46,7 @@ namespace QuizHub.Services.Shared_Services
 
                     Notification notification = new Notification()
                     {
+                        Title = model.Title,
                         Content = model.Content,
                         CreateAt = DateTime.Now,
                         User = user,
@@ -56,9 +58,11 @@ namespace QuizHub.Services.Shared_Services
                     {
 
                         Id = notification.Id,
+                        Title = notification.Title,
                         Content = notification.Content,
                         sendTime = notification.CreateAt,
                         senderEmail = userEmail
+                        ,senderName= $"{user.FirstName} {user.LastName}"
                     };
 
                 }
@@ -71,6 +75,7 @@ namespace QuizHub.Services.Shared_Services
                     }
                     Notification notification = new Notification()
                     {
+                        Title = model.Title,
                         Content = model.Content,
                         CreateAt = DateTime.Now,
                         User = user,
@@ -82,6 +87,7 @@ namespace QuizHub.Services.Shared_Services
                     {
 
                         Id = notification.Id,
+                        Title = notification.Title,
                         Content = notification.Content,
                         sendTime = notification.CreateAt,
                         senderEmail = userEmail
@@ -101,14 +107,17 @@ namespace QuizHub.Services.Shared_Services
 
             }
 
+            notification.Title = string.IsNullOrWhiteSpace(model.Title) ? notification.Title : model.Title;
             notification.Content = string.IsNullOrWhiteSpace(model.Content) ? notification.Content : model.Content;
             _notificationRepo.UpdateEntity(notification);
 
             return new NotificationViewDto
             {
                 Id = notification.Id,
+              Title = notification.Title,
                 Content = notification.Content,
-                senderEmail = userEmail
+                senderEmail = userEmail,
+                senderName = $"{user.FirstName} {user.LastName}"
                 ,
                 sendTime = notification.CreateAt
             };
@@ -117,10 +126,14 @@ namespace QuizHub.Services.Shared_Services
         {
             AppUser user = await _userManager.FindByEmailAsync(userEmail);
             Notification notification = await _notificationRepo.GetByIdAsync(notificationId);
-            if (notification == null || notification.userId != user.Id)
+            if (notification == null ) 
             {
                 throw new KeyNotFoundException($"A Notification with ID {notificationId} not found.");
 
+            }
+            if (notification.userId != user.Id)
+            {
+                throw new UnauthorizedAccessException("You are not allowed to delete this notification because you are not the sender.");
             }
 
             _notificationRepo.DeleteEntity(notification);
@@ -148,9 +161,12 @@ namespace QuizHub.Services.Shared_Services
                     .Select(n => new NotificationViewDto
                     {
                         Id = n.Id,
+                        Title = n.Title,
                         Content = n.Content,
                         sendTime = n.CreateAt,
-                        senderEmail = userEmail
+                        senderEmail = userEmail,
+                        senderName = $"{user.FirstName} {user.LastName}"
+
                     }).ToList();
                 return notification;
             }
@@ -162,9 +178,12 @@ namespace QuizHub.Services.Shared_Services
                     .Select(n => new NotificationViewDto
                     {
                         Id = n.Id,
+                        Title = n.Title,
                         Content = n.Content,
                         sendTime = n.CreateAt,
-                        senderEmail = userEmail
+                        senderEmail = userEmail,
+                        senderName = $"{user.FirstName} {user.LastName}"
+
                     }).ToList();
                 return notification;
             }
@@ -175,14 +194,17 @@ namespace QuizHub.Services.Shared_Services
                     .Select(n => new NotificationViewDto
                     {
                         Id = n.Id,
+                        Title = n.Title,
                         Content = n.Content,
                         sendTime = n.CreateAt,
-                        senderEmail = userEmail
+                        senderEmail = userEmail,
+                        senderName = $"{user.FirstName} {user.LastName}"
+
                     }).ToList();
                     return notification;
                 }
-                    throw new ArgumentException("Not Found Class.");
-                
+                throw new UnauthorizedAccessException("The student is not authorized to access this class.");
+
             }
             return null;
         }

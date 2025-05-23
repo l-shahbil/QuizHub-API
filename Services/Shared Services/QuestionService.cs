@@ -7,6 +7,9 @@ using QuizHub.Models.DTO.Question;
 using QuizHub.Services.Shared_Services.Interface;
 using QuizHub.Services.SubAdmin_Services.Interface;
 using QuizHub.Models.DTO.Answer;
+using static QuizHub.Services.Shared_Services.QuestionService;
+using System.Text.Json;
+using System.Text;
 
 
 namespace QuizHub.Services.Shared_Services
@@ -22,8 +25,12 @@ namespace QuizHub.Services.Shared_Services
         private readonly IRepository<Class> _calssRepo;
         private readonly IRepository<LearningOutcomes> _learningOutComesRepo;
         private readonly IAnswerService _answerService;
+        private readonly HttpClient _httpClient;
+        private readonly string _modeApilUrl;
 
-        public QuestionService(UserManager<AppUser> userManager, IRepository<Question> questionRepo,IRepository<Subject>subjectRepo, IRepository<Department> departmentRepo, IRepository<Class> calssRepo,IRepository<LearningOutcomes> learningOutComesRepo,IAnswerService answerService)
+        public QuestionService(UserManager<AppUser> userManager, IRepository<Question> questionRepo,
+            IRepository<Subject>subjectRepo, IRepository<Department> departmentRepo, IRepository<Class> calssRepo
+            ,IRepository<LearningOutcomes> learningOutComesRepo,IAnswerService answerService, HttpClient httpClient, IConfiguration configuration)
         {
             _userManager = userManager;
             _questionRepo = questionRepo;
@@ -32,10 +39,12 @@ namespace QuizHub.Services.Shared_Services
             _calssRepo = calssRepo;
             _learningOutComesRepo = learningOutComesRepo;
             _answerService = answerService;
+            _httpClient = httpClient;
+            _modeApilUrl = configuration["ExternalServices:FlaskModelApiBaseUrl"];
         }
 
 
-        public async Task<QuestionViewDto> AddQuestionAsync(string userEmail, int departmentId, int learningOutComesId, QuestionCreateDto model,int? classId)
+        public async Task<QuestionViewDto> AddQuestionAsync(string userEmail, int departmentId, int learningOutComesId, QuestionCreateDto model)
         {
            
             LearningOutcomes lrn = await _learningOutComesRepo.GetByIdAsync(learningOutComesId);
@@ -69,10 +78,20 @@ namespace QuizHub.Services.Shared_Services
                     //because the validateAnswers have a try and catch So we don't need to check the condition. this is middleware
                 }
 
+                if (!(model.Discrimination > 0 && model.Discrimination <= 1))
+                {
+                    throw new ArgumentOutOfRangeException(nameof(model.Discrimination), "Discrimination must be greater than zero and smaller than 100%.");
+
+                }
+
+
+                float difficulty = await PredictDifficultyModelAsync(model.QuestionText);
+
+
                 Question question = new Question()
                 {
                     QuestionText = model.QuestionText,
-                    Difficulty = model.Difficulty,
+                    Difficulty =Convert.ToDecimal(difficulty),
                     Discrimination = model.Discrimination,
                     leraningOutComes = lrn,
                     User = user,
@@ -101,28 +120,22 @@ namespace QuizHub.Services.Shared_Services
             }
             else if (roles.Contains(Roles.Teacher.ToString()))
             {
-                Class cls =await _calssRepo.GetByIdAsync(classId);
+                List<Class> clases =await _calssRepo.GetAllAsync();
+                Class cls = clases.FirstOrDefault(c=> c.SubjectId == lrn.subjectId && c.TeacherId == user.Id);
                 if (cls == null)
                 {
-                    throw new KeyNotFoundException($"A Class with ID {classId} not found.");
-                }
-                if(cls.SubjectId != lrn.subjectId)
-                {
-                    throw new Exception("The subject associated with this class does not match the subject of the Learning Outcomes.");
-                }
-                if (cls.TeacherId != user.Id)
-                {
-                    throw new UnauthorizedAccessException("Access Denied: You are not the assigned Teacher for this Class.");
-
+                    throw new UnauthorizedAccessException($"The Teacher Not Linked to subject.");
                 }
                 if (_answerService.ValidateAnswers(model.Answers))
                 {
                     //because the validateAnswers have a try and catch So we don't need to check the condition. this is middleware
                 }
+                float difficulty = await PredictDifficultyModelAsync(model.QuestionText);
+
                 Question question = new Question()
                 {
                     QuestionText = model.QuestionText,
-                    Difficulty = model.Difficulty,
+                    Difficulty = Convert.ToDecimal(difficulty),
                     Discrimination = model.Discrimination,
                     User = user,
                     leraningOutComes = lrn,
@@ -191,19 +204,19 @@ namespace QuizHub.Services.Shared_Services
 
             //update the data but that isn't in data base
             question.QuestionText = string.IsNullOrWhiteSpace(model.QuestionText) ? question.QuestionText : model.QuestionText;
-            if (model.Difficulty != 0)
+
+
+            if (!(model.Discrimination > 0 && model.Discrimination <=1))
             {
-                question.Difficulty = model.Difficulty;
+                throw new ArgumentOutOfRangeException(nameof(model.Discrimination), "Discrimination must be greater than zero and smaller than 100%.");
+
             }
-            if (model.Discrimination != 0)
-            {
+          
                 question.Discrimination = model.Discrimination;
-            }
 
             if (roles.Contains(Roles.SubAdmin.ToString()))
             {
                 _questionRepo.UpdateEntity(question);
-
                 return new QuestionViewDto{ 
                     QuestionId = questionId,
                     QuestionText = question.QuestionText,
@@ -293,5 +306,52 @@ namespace QuizHub.Services.Shared_Services
                 }).ToList()
             };
         }
+        private async Task<float> PredictDifficultyModelAsync(string questionText)
+        {
+            var requestData = new { text = questionText };
+            var json = JsonSerializer.Serialize(requestData);
+            var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(60));
+
+            try
+            {
+                var response = await _httpClient.PostAsync(
+                    _modeApilUrl,
+                    content,cts.Token);
+
+                var result = await response.Content.ReadAsStringAsync();
+
+                if (!response.IsSuccessStatusCode)
+                    throw new Exception(result);
+
+                var jsonDocument = JsonDocument.Parse(result);
+
+                if (jsonDocument.RootElement.TryGetProperty("difficulty_score", out var difficultyScoreElement))
+                {
+                    var difficultyScore = difficultyScoreElement.GetSingle();
+
+                    if (difficultyScore > 0.44f)
+                    {
+                        difficultyScore *= 1.3f;
+                        if (difficultyScore > 1f)
+                            difficultyScore = 1f;
+                    }
+
+                    return difficultyScore;
+                }
+
+                if (jsonDocument.RootElement.TryGetProperty("error", out var errorElement))
+                    throw new Exception(errorElement.GetString());
+
+                throw new Exception("Unexpected response from Flask API.");
+            }
+            catch (TaskCanceledException ex)
+            {
+                throw new Exception("Request to Flask API timed out.", ex);
+            }
+        }
+
+
     }
 }

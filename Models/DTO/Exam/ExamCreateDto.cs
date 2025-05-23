@@ -21,6 +21,7 @@ namespace QuizHub.Models.DTO.Exam
         public decimal ClarityRangeFrom { get; set; }
         [Required]
         public decimal ClarityRangeTo { get; set; }
+    
         public int classId { get; set; }
 
     }

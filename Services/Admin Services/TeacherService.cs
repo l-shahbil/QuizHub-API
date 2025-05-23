@@ -68,12 +68,12 @@ namespace QuizHub.Services.Admin_Services.Interface
             var existingTeacher = await _userManager.FindByEmailAsync(model.Email);
             if (existingTeacher != null)
             {
-                throw new Exception("User with this email already exists.");
+                throw new InvalidOperationException("Teacher with this email already exists.");
             }
 
             if (model.DateOfBirth > DateTime.UtcNow)
             {
-                throw new ArgumentException("Date of birth cannot be in the future.");
+                throw new InvalidOperationException("Date of birth cannot be in the future.");
             }
 
             var newTeacher = new AppUser
@@ -132,20 +132,16 @@ namespace QuizHub.Services.Admin_Services.Interface
 
                 }
 
-                teacher.Email = model.Email ?? teacher.Email;
-                    teacher.UserName = model.Email ?? teacher.UserName;
-                }
+                teacher.Email = model.Email;
+            }
             
-            teacher.FirstName = model.FirstName ?? teacher.FirstName;
-            teacher.LastName = model.LastName ?? teacher.LastName;
-            if (model.DateOfBirth.HasValue) 
+            teacher.FirstName =string.IsNullOrWhiteSpace(model.FirstName)? teacher.FirstName:model.FirstName;
+            teacher.LastName = string.IsNullOrWhiteSpace(model.LastName) ? teacher.LastName : model.LastName;
+            if (model.DateOfBirth.HasValue && model.DateOfBirth > DateTime.UtcNow) 
             {
                 teacher.DateOfBirth = model.DateOfBirth.Value;
             }
-            else
-            {
-                teacher.DateOfBirth = teacher.DateOfBirth;
-            }
+
 
 
             if (!string.IsNullOrWhiteSpace(model.PassWord))

@@ -1,9 +1,11 @@
 ﻿using Microsoft.AspNetCore.Identity;
+using QuizHub.Constant;
 using QuizHub.Data.Repository.Base;
 using QuizHub.Models;
 using QuizHub.Models.DTO.LearingOutComes;
 using QuizHub.Models.DTO.Subject;
 using QuizHub.Services.Admin_Services.Interface;
+using System.Security.Cryptography;
 
 namespace QuizHub.Services.Admin_Services
 {
@@ -12,12 +14,14 @@ namespace QuizHub.Services.Admin_Services
         private readonly IRepository<Subject> _subjectRepo;
         private readonly IRepository<Department> _departmentRepo;
         private readonly UserManager<AppUser> _userManger;
+        private readonly IRepository<Class> _classRepo;
 
-        public SubjectService(IRepository<Subject> subjectRepo,IRepository<Department> departmentRepo,UserManager<AppUser> userManger)
+        public SubjectService(IRepository<Subject> subjectRepo,IRepository<Department> departmentRepo,UserManager<AppUser> userManger,IRepository<Class> classRepo)
         {
             _subjectRepo = subjectRepo;
             _departmentRepo = departmentRepo;
             _userManger = userManger;
+            _classRepo = classRepo;
         }
         public async Task<SubjectViewDto> AddSubjectAsync(SubjectCreateDto model)
         {
@@ -83,7 +87,7 @@ namespace QuizHub.Services.Admin_Services
                 var roles = await _userManger.GetRolesAsync(user);
                 List<SubjectViewDto> subjects = new List<SubjectViewDto>();
 
-                if (roles.Contains("Admin"))
+                if (roles.Contains(Roles.Admin.ToString()))
                 {
                 subjects = _subjectRepo.GetAllAsync().Result.Select(s => new SubjectViewDto
                 {
@@ -94,7 +98,7 @@ namespace QuizHub.Services.Admin_Services
 
                     return subjects;
                 }
-                else if (roles.Contains("SubAdmin"))
+                else if (roles.Contains(Roles.SubAdmin.ToString()))
                 {
                     var departments = await _departmentRepo.GetAllIncludeAsync("Subjects");
 
@@ -108,24 +112,18 @@ namespace QuizHub.Services.Admin_Services
                             Description = s.Description
                         }).ToList();
                 }
-
+               
                 return subjects;
             
         }
-
-
-        public async Task<SubjectViewDetailsDto> GetSubjectByIdAsync(int id,string userEmail)
+        public async Task<SubjectViewDetailsDto> GetSubjectByIdAsync(int id)
         {
             var subject = await _subjectRepo.GetIncludeById(id, "LearingOutcomes");
             if (subject == null)
             {
                 throw new ArgumentException("A Subject not found.");
             }
-            var user = await _userManger.FindByEmailAsync(userEmail);
-            var roles = await _userManger.GetRolesAsync(user);
 
-            if (roles.Contains("Admin"))
-            {
                 return new SubjectViewDetailsDto()
                 {
                     Id = subject.Id,
@@ -135,18 +133,29 @@ namespace QuizHub.Services.Admin_Services
                     .ToList()
 
                 };
-            }
-            //else if (roles.Contains("subAdmin"))
-            //{
-            //    var department
-
-            //    var departments = await _departmentRepo.GetAllIncludeAsync("Subjects");
-            //   var IsSubjectAssignedToDepartment
-            //}
-
-            return new SubjectViewDetailsDto();
 
         }
-    
+        public async Task<List<SubjectViewDetailsDto>> GetSubjectForTeacher(string teacherEmail,int departmentId)
+        {
+            var user = await _userManger.FindByEmailAsync(teacherEmail);
+            var roles = await _userManger.GetRolesAsync(user);
+
+            if (roles.Contains(Roles.Teacher.ToString()))
+            {
+                List<Class> classes = await _classRepo.GetAllIncludeAsync("Subject");
+                List<Subject> subjects = classes.Where(c=> c.TeacherId == user.Id && c.DepartmentId == departmentId).Select(c => c.Subject)
+            .Where(s => s != null)
+            .DistinctBy(s => s.Id)
+            .ToList();
+                return subjects.Select(s=> new SubjectViewDetailsDto 
+                {
+                    Id = s.Id,
+                    Name = s.Name,
+                    Description= s.Description
+                }).ToList();
+            }
+            return null;
+        }
+
     }
 }
