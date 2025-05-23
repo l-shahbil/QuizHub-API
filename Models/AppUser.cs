@@ -30,7 +30,7 @@ namespace QuizHub.Models
         public ICollection <StudentClass> StudentClasses { get;set; }
         //Teaches
         public ICollection<Class> Classes { get; set; }
-        public ICollection<StudentAnswer> StudentAnswers { get; set; }
+        public ICollection<StudentAnswers> StudentAnswers { get; set; }
         public ICollection<Exam> Exams { get; set; }
         public ICollection<Question> Questions { get; set; }
         public ICollection<StudentExam> studentExams { get; set; }

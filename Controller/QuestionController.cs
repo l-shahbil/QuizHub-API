@@ -5,6 +5,8 @@ using QuizHub.Models;
 using QuizHub.Models.DTO.Question;
 using QuizHub.Services.Shared_Services.Interface;
 using System.Security.Claims;
+using System.Text.Json;
+using System.Text;
 
 namespace QuizHub.Controllers
 {
@@ -16,22 +18,25 @@ namespace QuizHub.Controllers
         private readonly IQuestionService _questionService;
         private readonly UserManager<AppUser> _userManager;
 
+
         public QuestionController(IQuestionService questionService, UserManager<AppUser> userManager)
         {
             _questionService = questionService;
             _userManager = userManager;
+
         }
+
 
         [HttpPost("{departmentId:int}/{learningOutComesId:int}")]
         [Authorize("Permission.Question.Create")]
-        public async Task<IActionResult> AddQuestion([FromBody] QuestionCreateDto model, int departmentId, int learningOutComesId, [FromQuery] int? classId)
+        public async Task<IActionResult> AddQuestion([FromBody] QuestionCreateDto model, int departmentId, int learningOutComesId)
         {
             try
             {
-                var userEmail = User.FindFirstValue(ClaimTypes.Email);
+                var userEmail = User.FindFirst(ClaimTypes.Email).Value;
                 if (userEmail == null) return Unauthorized("User email not found.");
 
-                var result = await _questionService.AddQuestionAsync(userEmail, departmentId, learningOutComesId, model, classId);
+                var result = await _questionService.AddQuestionAsync(userEmail, departmentId, learningOutComesId, model);
                 return Created("", result);
             }
             catch (KeyNotFoundException ex)
@@ -40,7 +45,11 @@ namespace QuizHub.Controllers
             }
             catch (UnauthorizedAccessException ex)
             {
-                return Forbid(ex.Message);
+                return StatusCode(403,ex.Message);
+            }
+            catch (ArgumentOutOfRangeException ex)
+            {
+                return BadRequest(new { message = ex.Message });
             }
             catch (Exception ex)
             {
@@ -48,13 +57,14 @@ namespace QuizHub.Controllers
             }
         }
 
+       
         [HttpDelete("{questionId:int}")]
         [Authorize("Permission.Question.Delete")]
         public async Task<IActionResult> DeleteQuestion(int questionId)
         {
             try
             {
-                var userEmail = User.FindFirstValue(ClaimTypes.Email);
+                var userEmail = User.FindFirst(ClaimTypes.Email).Value;
                 if (userEmail == null) return Unauthorized("User email not found.");
 
                 var result = await _questionService.DeleteQuestionAsync(userEmail, questionId);
@@ -66,7 +76,7 @@ namespace QuizHub.Controllers
             }
             catch (UnauthorizedAccessException ex)
             {
-                return Forbid(ex.Message);
+                return StatusCode(403,ex.Message);
             }
             catch (Exception ex)
             {
@@ -80,7 +90,7 @@ namespace QuizHub.Controllers
         {
             try
             {
-                var userEmail = User.FindFirstValue(ClaimTypes.Email);
+                var userEmail = User.FindFirst(ClaimTypes.Email).Value;
                 if (userEmail == null) return Unauthorized("User email not found.");
 
                 var result = await _questionService.EditQuestionAsync(userEmail, questionId, model);
@@ -92,7 +102,11 @@ namespace QuizHub.Controllers
             }
             catch (UnauthorizedAccessException ex)
             {
-                return Forbid(ex.Message);
+                return StatusCode(403,ex.Message);
+            }
+            catch (ArgumentOutOfRangeException ex)
+            {
+                return BadRequest(new { message = ex.Message });
             }
             catch (Exception ex)
             {
@@ -106,7 +120,7 @@ namespace QuizHub.Controllers
         {
             try
             {
-                var userEmail = User.FindFirstValue(ClaimTypes.Email);
+                var userEmail = User.FindFirst(ClaimTypes.Email).Value;
                 if (userEmail == null) return Unauthorized("User email not found.");
 
                 var result = await _questionService.GetAllQuestion(userEmail, subjectId);

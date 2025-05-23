@@ -22,7 +22,7 @@ namespace QuizHub.Data
         public DbSet<LearningOutcomes> LearingOutcomes { get; set; }
         public DbSet<Question> Question { get; set; }
         public DbSet<Answer> Answers { get; set; }
-        public DbSet<StudentAnswer> StudentAnswers { get; set; }
+        public DbSet<StudentAnswers> StudentAnswers { get; set; }
         public DbSet<Exam> Exams { get; set; }
         public DbSet<ExamQuestion> ExamQuestions { get; set; }
         public DbSet<ClassExam> ClassExams { get; set; }
@@ -62,31 +62,29 @@ namespace QuizHub.Data
                 .OnDelete(DeleteBehavior.Restrict);
 
 
+
             builder.Entity<StudentExam>()
-                .HasKey(se => new { se.userId, se.examId });
+      .HasOne(se => se.clsExam)
+      .WithMany(ce => ce.StudentExam)
+      .HasForeignKey(se => new { se.clsExamClassId, se.clsExamExamId })
+      .HasPrincipalKey(ce => new { ce.ClassId, ce.ExamId })
+      .OnDelete(DeleteBehavior.Restrict);
+
             builder.Entity<ExamQuestion>()
                 .HasKey(eq => new { eq.ExamId, eq.QuestionId });
-            builder.Entity<ClassExam>()
-                .HasKey(ce => new { ce.ClassId, ce.ExamId });
 
             // Student Answer
-            builder.Entity<StudentAnswer>()
-                .HasKey(sa => new { sa.userId, sa.QuestionId });
-            builder.Entity<StudentAnswer>()
+            builder.Entity<StudentAnswers>()
                 .HasOne(sa => sa.User)
                 .WithMany(u => u.StudentAnswers)
                 .HasForeignKey(sa => sa.userId)
                 .OnDelete(DeleteBehavior.Restrict);
-            builder.Entity<StudentAnswer>()
-                .HasOne(sa => sa.Question)
-                .WithMany(q => q.StudentAnswers)
-                .HasForeignKey(sa => sa.QuestionId)
-                .OnDelete(DeleteBehavior.Restrict);
-            builder.Entity<StudentAnswer>()
-                .HasOne(sa => sa.Exam)
-                .WithMany(e => e.studentAnswers)
-                .HasForeignKey(sa => sa.ExamId)
-                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<StudentAnswers>()
+.HasOne(se => se.StudentExam)
+.WithMany(ce => ce.studentAnswers)
+.HasForeignKey(se => new { se.studentExamId})
+.OnDelete(DeleteBehavior.Restrict);
 
             builder.Entity<Notification>()
             .HasOne(n => n.User)
@@ -100,6 +98,8 @@ namespace QuizHub.Data
                 .HasForeignKey(n => n.classId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            builder.Entity<ClassExam>()
+    .HasKey(ce => new { ce.ClassId, ce.ExamId });
             builder.Entity<ClassExam>()
     .HasOne(ce => ce.Exam)
     .WithMany(e => e.classExams)

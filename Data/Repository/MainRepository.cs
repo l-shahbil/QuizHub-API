@@ -5,6 +5,7 @@ using QuizHub.Data;
 using Microsoft.EntityFrameworkCore;
 using QuizHub.Data.Repository.Base;
 using System.Diagnostics.Contracts;
+using Microsoft.EntityFrameworkCore.Query;
 
 namespace QuizHub.Data.Repository
 {
@@ -73,18 +74,51 @@ namespace QuizHub.Data.Repository
 
         public async Task<List<T>> GetAllIncludeAsync(params string[] agers)
         {
-            IQueryable<T> table = _dbContext.Set<T>();
-            foreach (var ar in agers)
+            try
             {
-                table =  table.Include(ar);
-            }
-            return await table.ToListAsync();
-        }
 
+                IQueryable<T> table = _dbContext.Set<T>();
+                foreach (var ar in agers)
+                {
+                    table = table.Include(ar);
+                }
+                return await table.ToListAsync();
+            }
+            catch (Exception ex) 
+            {
+                throw new Exception(ex.Message);
+            }
+        }
+        public async Task<T?> GetFirstOrDefaultAsync(
+    Expression<Func<T, bool>> filter,
+    Func<IQueryable<T>, IIncludableQueryable<T, object>>? include = null,
+    bool asNoTracking = false)
+        {
+            try
+            {
+                IQueryable<T> query = _dbContext.Set<T>();
+
+                if (asNoTracking)
+                    query = query.AsNoTracking();
+
+                if (include != null)
+                    query = include(query);
+
+                return await query.FirstOrDefaultAsync(filter);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("Error retrieving data: " + ex.Message);
+            }
+        }
         public Task<T> SelecteOne(Expression<Func<T, bool>> filter)
         {
             return _dbContext.Set<T>().SingleOrDefaultAsync(filter);
         }
-
+        public void RemoveRange(IEnumerable<T> entities)
+        {
+            _dbContext.RemoveRange(entities);
+            _dbContext.SaveChanges();
+        }
     }
 }

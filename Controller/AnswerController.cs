@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using QuizHub.Constant;
 using QuizHub.Models.DTO.Answer;
 using QuizHub.Services.Shared_Services.Interface;
+using System.Security.Claims;
 
 namespace QuizHub.Controllers
 {
@@ -23,7 +24,7 @@ namespace QuizHub.Controllers
         {
             try
             {
-                string userEmail = User.Identity.Name;
+                string userEmail = User.FindFirst(ClaimTypes.Email).Value;
                 var answer = await _answerService.addAnswerAsync(userEmail, questionId, model);
                 return CreatedAtAction(nameof(AddAnswer), new { id = answer.Id }, answer);
             }
@@ -50,7 +51,7 @@ namespace QuizHub.Controllers
         {
             try
             {
-                string userEmail = User.Identity.Name;
+                string userEmail = User.FindFirst(ClaimTypes.Email).Value;
                 bool result = await _answerService.DeleteAnswerAsync(userEmail, questionId, answerId);
                 if (!result)
                 {
@@ -82,7 +83,7 @@ namespace QuizHub.Controllers
         {
             try
             {
-                string userEmail = User.Identity.Name;
+                string userEmail = User.FindFirst(ClaimTypes.Email).Value;
                 var updatedAnswer = await _answerService.EditAnswerAsync(userEmail, questionId, answerId, model);
                 return Ok(updatedAnswer);
             }

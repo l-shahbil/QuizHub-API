@@ -18,6 +18,8 @@ using QuizHub.Services.Shared_Services;
 using QuizHub.Services.Shared_Services.Interface;
 using QuizHub.Services.SubAdmin_Services;
 using QuizHub.Services.SubAdmin_Services.Interface;
+using QuizHub.Utils;
+using QuizHub.Utils.Interface;
 using System;
 using System.Text;
 
@@ -72,6 +74,7 @@ namespace QuizHub
             builder.Services.AddScoped<IAnswerService, AnswerService>();
             builder.Services.AddScoped<IExamService, ExamService>();
             builder.Services.AddScoped<IExamValidator, ExamValidator>();
+            builder.Services.AddScoped<IDeleteService, DeleteService>();
 
 
 
@@ -154,6 +157,7 @@ namespace QuizHub
             });
 
 
+            builder.Services.AddHttpClient();
 
 
             var app = builder.Build();
@@ -195,7 +199,7 @@ namespace QuizHub
 
             app.UseAuthentication();
             app.UseAuthorization();
-
+            app.UseHttpsRedirection();
 
             app.MapControllers();
 

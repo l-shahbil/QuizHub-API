@@ -5,8 +5,6 @@ namespace QuizHub.Models
     public class ExamQuestion
     {
         public decimal Score { get; set; }
-
-
         public string ExamId { get; set; }
         [ForeignKey("ExamId")]
         public Exam Exam { get; set; }

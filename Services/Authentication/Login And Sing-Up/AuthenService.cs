@@ -4,6 +4,7 @@ using Microsoft.IdentityModel.Tokens;
 using NuGet.Protocol;
 using QuizHub.Models;
 using QuizHub.Models.DTO.Authentication;
+using QuizHub.Models.DTO.User;
 using QuizHub.Services.Authentication.Login_And_Sing_Up.Interface;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
@@ -85,6 +86,39 @@ namespace QuizHub.Services.Authentication.Login_And_Sing_Up
                 ,
                 Expiration = myToken.ValidTo
             };
+
+        }
+        public async Task<ShowMe> showMe(string userEmail)
+        {
+            var user = await _userManager.FindByEmailAsync(userEmail);
+            return new ShowMe
+            {
+                Name = $"{user.FirstName} {user.LastName}",
+                Email = user.Email
+
+            };
+        }
+        public async Task<bool> resetPassword(string userEmail,ResetPasswordDto model)
+        {
+            var user = await _userManager.FindByEmailAsync(userEmail);
+
+          
+            var isOldPasswordValid = await _userManager.CheckPasswordAsync(user, model.LastPassword);
+            if (!isOldPasswordValid)
+                throw new Exception("Old password is incorrect.");
+
+            if (model.NewPassword == model.LastPassword)
+                throw new Exception("New password must be different from the old password.");   
+
+            var result = await _userManager.ChangePasswordAsync(user, model.LastPassword, model.NewPassword);
+
+            if (!result.Succeeded)
+            {
+                var errors = string.Join("; ", result.Errors.Select(e => e.Description));
+                throw new Exception($"Failed to reset password: {errors}");
+            }
+
+            return true;
 
         }
     }

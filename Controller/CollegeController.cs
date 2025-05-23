@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using QuizHub.Models;
 using QuizHub.Models.DTO.College;
 using QuizHub.Services.Admin_Services.Interface;
+using System.Security.Claims;
 
 namespace QuizHub.Controllers
 {
@@ -20,8 +21,10 @@ namespace QuizHub.Controllers
         [HttpGet]
         [Authorize("Permission.College.View")]
         public async Task<IActionResult> GetCollege()
+        
         {
-            List<GetCollegeDto> colleges = await _collegeService.GetAllCollegesAsync();
+            var userEmail = User.FindFirst(ClaimTypes.Email)?.Value;
+            List<GetCollegeDto> colleges = await _collegeService.GetAllCollegesAsync(userEmail);
             return Ok(colleges);
         }
 
@@ -59,18 +62,23 @@ namespace QuizHub.Controllers
         [Authorize("Permission.College.Edit")]
         public async Task<IActionResult> EditCollege([FromRoute] int id, [FromBody] UpdateCollegeDto model)
         {
-            if (model==null || !ModelState.IsValid)
+            try
             {
-                return BadRequest(ModelState);
-            }
+                var updatedCollege = await _collegeService.EditCollegeAsync(id, model);
 
-            var updatedCollege = await _collegeService.EditCollegeAsync(id, model);
-            if (updatedCollege == null)
+                if (updatedCollege == null)
+                    return NotFound(new { message = "College not found." });
+
+                return Ok(updatedCollege);
+            }
+            catch (ArgumentException ex)
             {
-                return NotFound();
+                return BadRequest(new { message = ex.Message });
             }
-
-            return NoContent();
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "An unexpected error occurred.", details = ex.Message });
+            }
 
         }
 

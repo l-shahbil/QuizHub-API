@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using QuizHub.Constant;
 using QuizHub.Data.Repository.Base;
 using QuizHub.Models;
 using QuizHub.Models.DTO.Department;
@@ -14,14 +15,16 @@ namespace QuizHub.Services.Admin_Services.Interface
     public class DepartmentService : IDepartmentService
     {
         private readonly IRepository<Department> _departmentRepo;
+        private readonly IRepository<UserDepartment> _userDepartmentRepo;
         private readonly IRepository<College> _collegeRepo;
         private readonly UserManager<AppUser> _userManager;
         private readonly IRepository<UserDepartment> _userDepartment;
         private readonly IRepository<Subject> _subjectRepo;
 
-        public DepartmentService(IRepository<Department> departmentRepo, IRepository<College> collegeRepo, UserManager<AppUser> userManager, IRepository<UserDepartment> userDepartment, IRepository<Subject> subjectRepo)
+        public DepartmentService(IRepository<Department> departmentRepo,IRepository<UserDepartment> userDepartmentRepo, IRepository<College> collegeRepo, UserManager<AppUser> userManager, IRepository<UserDepartment> userDepartment, IRepository<Subject> subjectRepo)
         {
             _departmentRepo = departmentRepo;
+            _userDepartmentRepo = userDepartmentRepo;
             _collegeRepo = collegeRepo;
             _userManager = userManager;
             _userDepartment = userDepartment;
@@ -67,6 +70,53 @@ namespace QuizHub.Services.Admin_Services.Interface
             }
             return null;
         }
+        public async Task<List<DepartmentViewDto>> getDepartmentByCollegeId(string userEmail,int collegeId)
+        {
+            var user = await _userManager.FindByEmailAsync(userEmail);
+            var roles = await _userManager.GetRolesAsync(user);
+            College college = await _collegeRepo.GetIncludeById(collegeId, "Departments");
+            if (college == null)
+            {
+                throw new ArgumentException("College not found");
+            }
+
+            if (roles.Contains(Roles.Admin.ToString()))
+            {
+            return college.Departments.Select(d=> new DepartmentViewDto
+            {
+                Id = d.Id,
+                Name = d.Name,
+                Description = d.Description,
+                CollegeName= d.Colleges.Name,
+            }).ToList();
+            }
+            else if (roles.Contains(Roles.SubAdmin.ToString()))
+            {
+                return college.Departments.Where(d=> d.subAdminId == user.Id).Select(d => new DepartmentViewDto
+                {
+                    Id = d.Id,
+                    Name = d.Name,
+                    Description = d.Description,
+                    CollegeName = d.Colleges.Name,
+                }).ToList();
+            }
+            else if (roles.Contains(Roles.Teacher.ToString()))
+            {
+                List<UserDepartment> allDepartmentUser = await _userDepartmentRepo.GetAllIncludeAsync("Department");
+                List<Department> allDepartmentForTeacher = allDepartmentUser.Where(ud => ud.userId == user.Id && ud.Department.collegeId == collegeId)
+                    .Select(ud => ud.Department).ToList();
+
+                return allDepartmentForTeacher.Select(d => new DepartmentViewDto
+                {
+                    Id = d.Id,
+                    Name = d.Name,
+                    Description = d.Description,
+                    CollegeName = d.Colleges.Name,
+                }).ToList();
+
+            }
+            return null;
+        }
         public async Task<DepartmentViewDto> AddDepartmentAsync(DepartmentCreateDto model)
         {
             var existingDepartment = await _departmentRepo.SelecteOne(Department => Department.Name == model.Name);
@@ -84,7 +134,6 @@ namespace QuizHub.Services.Admin_Services.Interface
             if (subAdmin == null)
             {
                 throw new ArgumentException("SubAdmin not found");
-
             }
             Department newDepartment = new Department()
             {
@@ -192,16 +241,19 @@ namespace QuizHub.Services.Admin_Services.Interface
 
         public async Task<List<GetTeacherDto>> GetAllTeachersInDepartmentAsync(int departmentId)
         {
+         
+
             var departmentExists = await _departmentRepo.GetByIdAsync(departmentId);
             if (departmentExists == null)
             {
-                throw new Exception("Department not found.");
+                throw new KeyNotFoundException("Department not found.");
             }
 
+         
             var userDepartment = await _userDepartment.GetAllIncludeAsync("User");
 
             var filteredTeachers = userDepartment
-                .Where(ud => ud.departmentId == departmentId)
+                .Where(ud => ud.departmentId == departmentId && _userManager.IsInRoleAsync(ud.User, Roles.Teacher.ToString()).Result)
                 .Select(ud => new GetTeacherDto
                 {
                     Email = ud.User.Email,
