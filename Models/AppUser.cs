@@ -18,7 +18,7 @@ namespace QuizHub.Models
         [Required]
         [DataType(DataType.Date)]
         public DateTime DateOfBirth { get; set; }
-
+        public bool IsDeleted { get; set; }
         //Foreign key
         public int? BatchId { get; set; }
 

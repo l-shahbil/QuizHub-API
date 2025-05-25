@@ -3,6 +3,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace QuizHub.Models
 {
+
     public class Class
     {
         public int Id { get; set; }
@@ -14,7 +15,7 @@ namespace QuizHub.Models
         public string TeacherId { get; set; }
 
         public int DepartmentId { get; set; }
-        public int SubjectId { get; set; }
+        public int? SubjectId { get; set; }
 
         //Relationships
         public ICollection<StudentClass> StudentClasses { get; set; }

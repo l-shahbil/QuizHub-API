@@ -101,10 +101,14 @@ namespace QuizHub.Services.Shared_Services
         {
             AppUser user = await _userManager.FindByEmailAsync(userEmail);
             Notification notification = await _notificationRepo.GetByIdAsync(notificationId);
-            if (notification == null || notification.userId != user.Id)
+            if (notification == null )
             {
                 throw new KeyNotFoundException($"A Notification with ID {notificationId} not found.");
 
+            }
+            if (notification.userId != user.Id)
+            {
+                throw new UnauthorizedAccessException("You are not allowed to delete this notification because you are not the sender.");
             }
 
             notification.Title = string.IsNullOrWhiteSpace(model.Title) ? notification.Title : model.Title;
@@ -157,15 +161,15 @@ namespace QuizHub.Services.Shared_Services
                 {
                     throw new ArgumentException("Not Found Class.");
                 }
-                var notification = _notificationRepo.GetAllAsync().Result.Where(n => n.classId == classId)
+                var notification = _notificationRepo.GetAllIncludeAsync("User").Result.Where(n => n.classId == classId)
                     .Select(n => new NotificationViewDto
                     {
                         Id = n.Id,
                         Title = n.Title,
                         Content = n.Content,
                         sendTime = n.CreateAt,
-                        senderEmail = userEmail,
-                        senderName = $"{user.FirstName} {user.LastName}"
+                        senderEmail = n.User.Email,
+                        senderName = $"{n.User.FirstName} {n.User.LastName}"
 
                     }).ToList();
                 return notification;
@@ -174,33 +178,33 @@ namespace QuizHub.Services.Shared_Services
                 if(cls.TeacherId != user.Id) {
                     throw new ArgumentException("Not Found Class.");
                 }
-                var notification = _notificationRepo.GetAllAsync().Result.Where(n => n.classId == classId)
-                    .Select(n => new NotificationViewDto
-                    {
-                        Id = n.Id,
-                        Title = n.Title,
-                        Content = n.Content,
-                        sendTime = n.CreateAt,
-                        senderEmail = userEmail,
-                        senderName = $"{user.FirstName} {user.LastName}"
+                var notification = _notificationRepo.GetAllIncludeAsync("User").Result.Where(n => n.classId == classId)
+                       .Select(n => new NotificationViewDto
+                       {
+                           Id = n.Id,
+                           Title = n.Title,
+                           Content = n.Content,
+                           sendTime = n.CreateAt,
+                           senderEmail = n.User.Email,
+                           senderName = $"{n.User.FirstName} {n.User.LastName}"
 
-                    }).ToList();
+                       }).ToList();
                 return notification;
             }
             else if (roles.Contains(Roles.Student.ToString())){
                 if (cls.StudentClasses.Any(sc => sc.UserId == user.Id)) 
                 {
-                    var notification = _notificationRepo.GetAllAsync().Result.Where(n => n.classId == classId)
-                    .Select(n => new NotificationViewDto
-                    {
-                        Id = n.Id,
-                        Title = n.Title,
-                        Content = n.Content,
-                        sendTime = n.CreateAt,
-                        senderEmail = userEmail,
-                        senderName = $"{user.FirstName} {user.LastName}"
+                    var notification = _notificationRepo.GetAllIncludeAsync("User").Result.Where(n => n.classId == classId)
+                        .Select(n => new NotificationViewDto
+                        {
+                            Id = n.Id,
+                            Title = n.Title,
+                            Content = n.Content,
+                            sendTime = n.CreateAt,
+                            senderEmail = n.User.Email,
+                            senderName = $"{n.User.FirstName} {n.User.LastName}"
 
-                    }).ToList();
+                        }).ToList();
                     return notification;
                 }
                 throw new UnauthorizedAccessException("The student is not authorized to access this class.");

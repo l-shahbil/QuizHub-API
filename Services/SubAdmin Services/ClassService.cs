@@ -52,11 +52,6 @@ namespace QuizHub.Services.SubAdmin_Services
             }
 
 
-            var existClass = await _classRepo.SelecteOne(c => c.Name == model.Name);
-            if (existClass != null)
-            {
-                throw new ArgumentException("A Class with the same name already exists.");
-            }
 
             var existSubject = await _subjectRepo.SelecteOne(sub => sub.Id == subjectId);
             if (existSubject == null)
@@ -70,7 +65,7 @@ namespace QuizHub.Services.SubAdmin_Services
             }
 
             var existTeacher = await _userRepo.SelecteOne(u => u.Email == teacherEmail);
-            if (existTeacher == null)
+            if (existTeacher == null || existTeacher.IsDeleted)
             {
                 throw new ArgumentException($"A Teacher with Email {teacherEmail} not found.");
             }
@@ -96,7 +91,9 @@ namespace QuizHub.Services.SubAdmin_Services
                 Id = newClass.Id,
                 Name = model.Name,
                 Description = model.Description,
+                TeacherEmail = existTeacher.Email,
                 TeacherName = $"{existTeacher.FirstName} {existTeacher.LastName}",
+                subjectId = existSubject.Id,
                 SubjectName = existSubject.Name
 
             };
@@ -126,7 +123,7 @@ namespace QuizHub.Services.SubAdmin_Services
         {
             var classs = await _classRepo.GetIncludeById(id, "Subject", "Teacher")
              ?? throw new KeyNotFoundException($"Class with ID {id} not found.");
-            Department department = await _departmentRepo.GetIncludeById(classs.DepartmentId, "SubAdmin");
+            Department department = await _departmentRepo.GetIncludeById(classs.DepartmentId, "SubAdmin", "UserDepartments", "Subjects");
             if (department.SubAdmin.Email != subAdminEmail)
             {
                 throw new UnauthorizedAccessException("Access Denied: You are not the assigned SubAdmin for this department.");
@@ -142,7 +139,7 @@ namespace QuizHub.Services.SubAdmin_Services
             if (!string.IsNullOrWhiteSpace(model.TeacherEmail))
             {
                 var teacher = await _userRepo.SelecteOne(e => e.Email == model.TeacherEmail);
-                if (teacher == null)
+                if (teacher == null ||teacher.IsDeleted)
                 {
                     throw new ArgumentException($"A Teacher with Email {model.TeacherEmail} not found.");
                 }
@@ -154,14 +151,14 @@ namespace QuizHub.Services.SubAdmin_Services
                 }
                 classs.Teacher = teacher;
             }
-            if (!string.IsNullOrWhiteSpace(model.SubjectName))
+            if (model.SubjectId != null)
             {
-                var subject = await _subjectRepo.SelecteOne(s => s.Name == model.SubjectName);
+                var subject = await _subjectRepo.GetByIdAsync( model.SubjectId);
                 if (subject == null)
                 {
-                    throw new ArgumentException($"A Subject {model.SubjectName} not found.");
+                    throw new ArgumentException($"A Subject {model.SubjectId} not found.");
                 }
-                var isAssingedSubjectToDepartment = department.Subjects.FirstOrDefault(s => s.Name == subject.Name);
+                var isAssingedSubjectToDepartment = department.Subjects.FirstOrDefault(s => s.Id == subject.Id);
                 if (isAssingedSubjectToDepartment == null)
                 {
                     throw new ArgumentException($"A Subject not assigned to department.");
@@ -173,14 +170,22 @@ namespace QuizHub.Services.SubAdmin_Services
             classs.Description = string.IsNullOrWhiteSpace(model.Description) ? classs.Description : model.Description;
 
             _classRepo.UpdateEntity(classs);
-            return new ClassViewDto
+            ClassViewDto clsView =  new ClassViewDto{
+                            Id = classs.Id,
+                            Name = classs.Name,
+                            Description = classs.Description,
+                            SubjectName = classs.Subject.Name,
+                            TeacherName = $"{classs.Teacher.FirstName} {classs.Teacher.LastName}",
+                            TeacherEmail = classs.Teacher.Email
+                        };
+
+            if(classs.SubjectId != null)
             {
-                Id = classs.Id,
-                Name = classs.Name,
-                Description = classs.Description,
-                SubjectName = classs.Subject.Name,
-                TeacherName = $"{classs.Teacher.FirstName} {classs.Teacher.LastName}"
-            };
+                clsView.subjectId = classs.SubjectId.Value;
+                return clsView;
+            }
+
+            return clsView;
         }
 
         public async Task<List<ClassViewDto>> GetAllClassesForSubAdminAsync(int departmentId, string subAdminEmail)
@@ -201,8 +206,8 @@ namespace QuizHub.Services.SubAdmin_Services
        {
            Id = c.Id,
            Name = c.Name,
-           TeacherName = $"{c.Teacher.FirstName} {c.Teacher.LastName}",
-           TeacherEmail = c.Teacher.Email,
+           TeacherName = c.Teacher.IsDeleted ? "Teacher is deleted" : $"{c.Teacher.FirstName} {c.Teacher.LastName}",
+           TeacherEmail = c.Teacher.IsDeleted ? "Teacher is deleted" : c.Teacher.Email,
            subjectId = c.Subject.Id,
            SubjectName = c.Subject.Name,
        })
@@ -233,9 +238,9 @@ namespace QuizHub.Services.SubAdmin_Services
            Id = c.Id,
            Name = c.Name,
            TeacherName = $"{user.FirstName} {user.LastName}",
-           TeacherEmail = user.Email,
+           TeacherEmail = c.Teacher.IsDeleted ? "Teacher is deleted" : user.Email,
            subjectId = c.Subject.Id,
-           SubjectName = c.Subject.Name,
+           SubjectName = c.Teacher.IsDeleted ? "Teacher is deleted" : c.Subject.Name,
        })
        .ToList();
 
@@ -255,8 +260,8 @@ namespace QuizHub.Services.SubAdmin_Services
                 Id = cls.Id,
                 Name = cls.Name,
                 Description = cls.Description,
-                TeacherName = $"{cls.Teacher?.FirstName} {cls.Teacher?.LastName}",
-                TeacherEmail = cls.Teacher?.Email,
+                TeacherName = cls.Teacher.IsDeleted ? "Teacher is deleted" : $"{cls.Teacher?.FirstName} {cls.Teacher?.LastName}",
+                TeacherEmail =cls.Teacher.IsDeleted? "Teacher is deleted" : cls.Teacher?.Email,
                 subjectId = cls.Subject.Id,
                 SubjectName = cls.Subject?.Name
             }).ToList();
@@ -264,7 +269,7 @@ namespace QuizHub.Services.SubAdmin_Services
             return allClassForStudent;
         }
 
-        public async Task<bool> AddStudentToClass(int departmentId, string subAdminEmail, int classId, string studentEmail)
+        public async Task<bool> AddStudentToClass(int departmentId, string subAdminEmail, int classId, List<string> studentsEmails)
         {
             try
             {
@@ -284,18 +289,19 @@ namespace QuizHub.Services.SubAdmin_Services
                 throw new ArgumentException("Class not found.");
 
             }
+                foreach (string studentEmail in studentsEmails) { 
             var student = await _userRepo.SelecteOne(s => s.Email == studentEmail);
             var IsStudentInDepartment = _userDepartmentRepo.GetAllAsync().Result.FirstOrDefault(s => s.userId == student.Id && s.departmentId == departmentId);
             if (student == null || IsStudentInDepartment == null || !_userManager.IsInRoleAsync(student, Roles.Student.ToString()).Result)
             {
-                throw new ArgumentException("Student not found.");
+                throw new ArgumentException($"{studentEmail} not found.");
             }
 
             var IsSudentInClass = _studentClassRepo.GetAllAsync().Result.FirstOrDefault(s => s.ClassId == classId && s.UserId == student.Id);
 
             if (IsSudentInClass != null)
             {
-                throw new ArgumentException("Student already exists in the class.");
+                throw new ArgumentException($"{studentEmail} already exists in the class.");
 
             }
 
@@ -306,6 +312,7 @@ namespace QuizHub.Services.SubAdmin_Services
             };
 
             await _studentClassRepo.AddAsyncEntity(stdClass);
+                }
 
             return true;
             }catch(Exception ex)

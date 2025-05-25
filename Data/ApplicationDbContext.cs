@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+﻿
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.CodeAnalysis.Options;
 using Microsoft.EntityFrameworkCore;
 using QuizHub.Models;
@@ -45,7 +46,7 @@ namespace QuizHub.Data
             builder.Entity<UserDepartment>()
                 .HasOne(ud => ud.Department)
                 .WithMany(d => d.UserDepartments)
-                .OnDelete(DeleteBehavior.Restrict);
+                .OnDelete(DeleteBehavior.Cascade);
 
             builder.Entity<StudentClass>()
                 .HasKey(sc => new { sc.UserId, sc.ClassId });
@@ -113,6 +114,12 @@ namespace QuizHub.Data
                 .OnDelete(DeleteBehavior.Restrict);
 
 
+
+            builder.Entity<Class>()
+    .HasOne(c => c.Subject)
+    .WithMany(s => s.Classes)
+    .HasForeignKey(c => c.SubjectId)
+    .OnDelete(DeleteBehavior.Restrict);
         }
 
     }

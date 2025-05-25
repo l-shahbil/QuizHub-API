@@ -13,7 +13,7 @@ namespace QuizHub.Services.SubAdmin_Services.Interface
         Task<bool> DeleteClasssAsync(int id, string subAdminEmail);
         Task<ClassViewDto> AddClasssAsync(ClassCreateDto model, string subAdminEmail, int departmentId, int subjectId, string teacherEmail);
 
-        Task<bool> AddStudentToClass(int departmentId, string subAdminEmail, int classId, string studentEmail);
+        Task<bool> AddStudentToClass(int departmentId, string subAdminEmail, int classId, List<string> studentsEmails);
         Task<bool> DeleteStudentFromClass(int departmentId, string subAdminEmail, int classId, string studentEmail);
         Task<bool> AddBatchToClass(int departmentId, string subAdminEmail, int classId, int batchId);
         Task<List<StudentViewDto>> GetAllStudentInClass(int departmentId, string userEmail, int classId);

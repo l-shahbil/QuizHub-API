@@ -41,12 +41,20 @@ namespace QuizHub.Controllers
         [Authorize("Permission.Subject.Delete")]
         public async Task<IActionResult> DeleteSubjectAsync(int id)
         {
+            try
+            {
+
             var result = await _subjectService.DeleteSubjectAsync(id);
             if (result)
             {
                 return NoContent(); // 204 No Content
             }
             return NotFound($"Subject with ID {id} not found.");
+            }
+            catch(Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
         }
 
         // PUT: api/Subjects/EditSubject/{id}

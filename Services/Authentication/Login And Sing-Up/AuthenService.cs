@@ -28,7 +28,7 @@ namespace QuizHub.Services.Authentication.Login_And_Sing_Up
         public async Task<JwtResponse> authenticationAsync(LoginDto userDto)
         {
             AppUser user = await _userManager.FindByNameAsync(userDto.userName);
-            if (user == null)
+            if (user == null || user.IsDeleted)
             {
                 return null;
             }

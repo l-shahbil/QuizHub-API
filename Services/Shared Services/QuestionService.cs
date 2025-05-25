@@ -183,7 +183,7 @@ namespace QuizHub.Services.Shared_Services
             else if (roles.Contains(Roles.Teacher.ToString())) {
                 if(question.userId != user.Id)
                 {
-                    throw new Exception("You are not authorized to perform this action on this question.");
+                    throw new UnauthorizedAccessException("You are not authorized to perform this action on this question.");
                 }
                 _questionRepo.DeleteEntity(question);
                 return true;

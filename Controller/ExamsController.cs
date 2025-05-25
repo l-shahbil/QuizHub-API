@@ -1,7 +1,10 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using QuizHub.Constant;
+using QuizHub.Data.Repository.Base;
+using QuizHub.Models;
 using QuizHub.Models.DTO.Exam;
 using QuizHub.Services.Shared_Services.Interface;
 using System.Security.Claims;
@@ -13,10 +16,12 @@ namespace QuizHub.Controller
     public class ExamsController : ControllerBase
     {
         private readonly IExamService _examService;
+        private readonly UserManager<AppUser> _userManager;
 
-        public ExamsController(IExamService examService)
+        public ExamsController(IExamService examService,UserManager<AppUser> userManager)
         {
             _examService = examService;
+            _userManager = userManager;
         }
 
         [HttpPost]
@@ -55,7 +60,7 @@ namespace QuizHub.Controller
             {
                 return BadRequest(ex.Message);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 // Log the exception (optional for now)
                 return StatusCode(500, "An unexpected error occurred.");
@@ -292,6 +297,18 @@ namespace QuizHub.Controller
                 return StatusCode(500, new { message = "Unexpected error occurred.", details = ex.Message });
             }
         }
+        [HttpGet("exam-counter")]
+        [Authorize("Permission.Exam.View Available")]
+        public async Task<IActionResult> GetExamCounter()
+        {
+            var userEmail = User.Identity.Name;
+            var result = await _examService.GetExamCounterForStudent(userEmail);
+
+            if (result == null)
+                return NotFound("No data found for this student.");
+
+            return Ok(result);
+        }
 
         [HttpGet("take")]
         [Authorize("Permission.Exam.Take")]
@@ -344,8 +361,23 @@ namespace QuizHub.Controller
         {
             try
             {
-                var result = await _examService.ViewExamResult(studentEmail, classId, examId);
-                return Ok(result);
+                var userEmail = User.Identity?.Name;
+                var user = await _userManager.FindByEmailAsync(userEmail!);
+                var roles = await _userManager.GetRolesAsync(user);
+
+                if (roles.Contains(Roles.Student.ToString()))
+                {
+                    var result = await _examService.ViewExamResult(null,studentEmail, classId, examId);
+                    return Ok(result);
+
+                }
+                else if (roles.Contains(Roles.Teacher.ToString()))
+                {
+                    var result = await _examService.ViewExamResult(user.Email,studentEmail, classId, examId);
+                    return Ok(result);
+
+                }
+                return StatusCode(403);
             }
             catch (InvalidOperationException ex)
             {
@@ -389,12 +421,31 @@ namespace QuizHub.Controller
                 return BadRequest(ex.Message);
             }
         }
-        [HttpGet("generatePractices")]
+
+
+        [HttpGet("completed-exams/{classId}")]
+        [Authorize("Permission.Exam.View Available")]
+        public async Task<IActionResult> GetCompletedExams(int classId)
+        {
+            var userEmail = User.Identity?.Name;
+
+            try
+            {
+                var result = await _examService.getCompletedExams(userEmail, classId);
+                return Ok(result);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "An error occurred while fetching completed exams.", details = ex.Message });
+            }
+        }
+            [HttpGet("generatePractices")]
         [Authorize("Permission.Exam.Practices")]
-        public async Task<IActionResult> GenerateExamPractice(
-       [FromQuery] int classId,
-       [FromQuery] List<int> learningOutcomeIds,
-       [FromQuery] int questionCount)
+        public async Task<IActionResult> GenerateExamPractice([FromQuery] int classId,[FromQuery] List<int> learningOutcomeIds,[FromQuery] int questionCount)
         {
             try
             {

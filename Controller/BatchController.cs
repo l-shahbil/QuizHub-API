@@ -190,12 +190,12 @@ namespace QuizHub.Controllers
 
         [Authorize("Permission.Student.Add To Batch")]
         [HttpPost("Add Student")]
-        public async Task<IActionResult> AddStudentToBatch([FromQuery]int departmentId,[FromQuery] int batchId, string studentEmail)
+        public async Task<IActionResult> AddStudentToBatch([FromQuery]int departmentId,[FromQuery] int batchId, List<string> studenstEmails)
         {
             try
             {
             var subAdminEmail = User.FindFirst(ClaimTypes.Email)?.Value;
-                var result = await _batchService.AddStudentToBatchAsync(departmentId, subAdminEmail, batchId, studentEmail);
+                var result = await _batchService.AddStudentToBatchAsync(departmentId, subAdminEmail, batchId, studenstEmails);
                 return Ok(result);
             }
             catch (KeyNotFoundException knfEx)
@@ -219,41 +219,11 @@ namespace QuizHub.Controllers
                 return StatusCode(500, $"Internal server error: {ex.Message}");
             }
         }
-        [Authorize("Permission.Student.Add To Batch")]
-        [HttpPost("Add List Students")]
-        public async Task<IActionResult> AddListStudenstToBatch([FromQuery]int departmentId, [FromQuery] int batchId, List<string> studentsEmails)
-        {
-            try
-            {
-                var subAdminEmail = User.FindFirst(ClaimTypes.Email)?.Value;
-                var result = await _batchService.AddListStudentsToBatchAsync(departmentId, subAdminEmail, batchId, studentsEmails);
-                return Ok(result);
-            }
-            catch (KeyNotFoundException knfEx)
-            {
-                return NotFound(knfEx.Message);
-            }
-            catch (UnauthorizedAccessException uaEx)
-            {
-                return Forbid(uaEx.Message);
-            }
-            catch (ArgumentException argEx)
-            {
-                return BadRequest(argEx.Message);
-            }
-            catch (InvalidOperationException ioEx)
-            {
-                return BadRequest(ioEx.Message);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, $"Internal server error: {ex.Message}");
-            }
-        }
+       
 
         [Authorize("Permission.Student.Delete From Batch")]
         [HttpDelete("{batchId}/students/{studentEmail}")]
-        public async Task<IActionResult> RemoveStudentFromBatch(int departmentId, int batchId, string studentEmail)
+        public async Task<IActionResult> RemoveStudentFromBatch(int departmentId, int batchId,string studentEmail)
         {
             try
             {

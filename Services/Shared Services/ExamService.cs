@@ -9,6 +9,7 @@ using QuizHub.Models.DTO.Answer;
 using QuizHub.Models.DTO.Exam;
 using QuizHub.Models.DTO.Question;
 using QuizHub.Services.Shared_Services.Interface;
+using QuizHub.Utils.Interface;
 using System;
 using System.IO;
 
@@ -24,17 +25,21 @@ namespace QuizHub.Utils
         private readonly IRepository<Subject> _subjectRepo;
         private readonly IRepository<Department> _departmentRepo;
         private readonly IRepository<StudentAnswers> _studentAnswerRepo;
+        private readonly IRepository<StudentClass> _studentClassRepo;
         private readonly IRepository<Class> _classRepo;
         private readonly IRepository<LearningOutcomes> _learningOutComesRepo;
         private readonly IRepository<Answer> _answerRepo;
         private readonly IRepository<ExamQuestion> _examQuestionRepo;
         private readonly IRepository<ClassExam> _classExamRepo;
         private readonly IRepository<StudentExam> _studentExamRepo;
+        private readonly IDeleteService _deleteService;
 
         public ExamService(UserManager<AppUser> userManager, IRepository<Exam> examRepo, IRepository<Question> questionRepo
-            , IExamValidator examValidation, IRepository<Subject> subjectRepo, IRepository<Department> departmentRepo, IRepository<StudentAnswers> studentAnswerRepo,
+            , IExamValidator examValidation, IRepository<Subject> subjectRepo, IRepository<Department> departmentRepo,
+            IRepository<StudentAnswers> studentAnswerRepo,IRepository<StudentClass> studentClassRepo,
             IRepository<Class> classRepo, IRepository<LearningOutcomes> learningOutComesRepo, IRepository<Answer> answerRepo,
-            IRepository<ExamQuestion> examQuestionRepo, IRepository<ClassExam> classExamRepo, IRepository<StudentExam> studentExamRepo)
+            IRepository<ExamQuestion> examQuestionRepo, IRepository<ClassExam> classExamRepo, 
+            IRepository<StudentExam> studentExamRepo,IDeleteService deleteService)
         {
             _userManager = userManager;
             _examRepo = examRepo;
@@ -43,12 +48,14 @@ namespace QuizHub.Utils
             _subjectRepo = subjectRepo;
             _departmentRepo = departmentRepo;
             _studentAnswerRepo = studentAnswerRepo;
+            _studentClassRepo = studentClassRepo;
             _classRepo = classRepo;
             _learningOutComesRepo = learningOutComesRepo;
             _answerRepo = answerRepo;
             _examQuestionRepo = examQuestionRepo;
             _classExamRepo = classExamRepo;
             _studentExamRepo = studentExamRepo;
+            _deleteService = deleteService;
         }
         public async Task<ExamViewDto> CreateExamAsync(string userEmail, int departmentId, ExamCreateDto model)
         {
@@ -151,25 +158,8 @@ namespace QuizHub.Utils
                 await _examValidation.CheckSubAdminOwnershipDepartment(userEmail, departmentId);
                 await _examValidation.IsSubjectAssignedToDepartment(exam.SubjectId, departmentId);
 
-                var exm = await _examRepo.GetFirstOrDefaultAsync(
-                     ex => ex.Id == examId,
-                     include: query => query.Include(ex => ex.ExamQuestions).Include(ex => ex.studentAnswers)
-                     .Include(ex => ex.classExams)
-                                           .ThenInclude(ce => ce.StudentExam).ThenInclude(se => se.studentAnswers),
-                     asNoTracking: false
-                 );
-                var allExamQuestions = exm.ExamQuestions;
-                var allClsExams = exam.classExams;
-                var studentExams = exam.classExams.SelectMany(ce => ce.StudentExam);
-                var allAnswers = studentExams.SelectMany(se => se.studentAnswers);
 
-
-                _studentAnswerRepo.RemoveRange(allAnswers);
-                _studentExamRepo.RemoveRange(studentExams);
-                _classExamRepo.RemoveRange(allClsExams);
-                _examQuestionRepo.RemoveRange(allExamQuestions);
-                _examRepo.DeleteEntity(exam);
-
+                await _deleteService.deleteExam(exam);
                 return true;
 
             }
@@ -177,26 +167,13 @@ namespace QuizHub.Utils
             {
                 await _examValidation.IsSubjectAssignedToDepartment(exam.SubjectId, departmentId);
                 await _examValidation.IsTheTeacherLinkedToTheSubject(user.Id, exam.SubjectId);
+                if(exam.UserId != user.Id)
+                {
+                    throw new UnauthorizedAccessException("You are not authorized to delete this exam because you are not the creator.");
 
+                }
 
-                var exm = await _examRepo.GetFirstOrDefaultAsync(
-                     ex => ex.Id == examId,
-                     include: query => query.Include(ex => ex.ExamQuestions).Include(ex => ex.studentAnswers)
-                     .Include(ex => ex.classExams)
-                                           .ThenInclude(ce => ce.StudentExam).ThenInclude(se => se.studentAnswers),
-                     asNoTracking: false
-                 );
-                var allExamQuestions = exm.ExamQuestions;
-                var allClsExams = exam.classExams;
-                var studentExams = exam.classExams.SelectMany(ce => ce.StudentExam);
-                var allAnswers = studentExams.SelectMany(se => se.studentAnswers);
-
-
-                _studentAnswerRepo.RemoveRange(allAnswers);
-                _studentExamRepo.RemoveRange(studentExams);
-                _classExamRepo.RemoveRange(allClsExams);
-                _examQuestionRepo.RemoveRange(allExamQuestions);
-                _examRepo.DeleteEntity(exam);
+                await _deleteService.deleteExam(exam);
                 return true;
             }
             return false;
@@ -571,15 +548,16 @@ namespace QuizHub.Utils
 
                 clsExam.showResult = true;
                 _classExamRepo.UpdateEntity(clsExam);
+                return true;
             }
                 return false;
         }
-        public async Task<ExamResultViewDto> ViewExamResult(string studentEmail, int classId, string examId)
+        public async Task<ExamResultViewDto> ViewExamResult(string? userEmail,string studentEmail, int classId, string examId)
         {
             var user = await _userManager.FindByEmailAsync(studentEmail);
             var roles = await _userManager.GetRolesAsync(user);
 
-            Exam exam = await _examRepo.GetIncludeById(examId, "Subject");
+            Exam exam = await _examRepo.GetIncludeById(examId, "Subject", "ExamQuestions");
             List<StudentExam> stdsExams = await _studentExamRepo.GetAllAsync();
             StudentExam stdExam = stdsExams.FirstOrDefault(se => se.clsExamClassId == classId && se.clsExamExamId == examId && se.userId == user.Id);
             if (stdExam == null)
@@ -594,7 +572,7 @@ namespace QuizHub.Utils
             List<ClassExam> clsExams = await _classExamRepo.GetAllAsync();
             ClassExam clsExam = clsExams.FirstOrDefault(ce => ce.ExamId == examId && ce.ClassId == classId);
             ExamResultViewDto examResult;
-            if (roles.Contains(Roles.Student.ToString()))
+            if (userEmail ==null)
             {
                 if (stdExam.isSubmit == false)
                 {
@@ -820,6 +798,47 @@ namespace QuizHub.Utils
             }
             return null;
         }
+        public async Task<ExamCounterViewDto> GetExamCounterForStudent(string userEmail)
+        {
+            var user = await _userManager.FindByEmailAsync(userEmail);
+            var roles = await _userManager.GetRolesAsync(user);
+            List<StudentClass> studenstClss = await _studentClassRepo.GetAllIncludeAsync("Class");
+            List<Class> studentClasses = studenstClss.Where(sc=> sc.UserId == user.Id).Select(s=> s.Class).ToList();
+            
+      
+            int examAvalibaleCount = 0;
+            int previousExamCount = 0;
+
+
+            foreach(Class cls in studentClasses)
+            {
+
+            List<ClassExam> classExams = await _classExamRepo.GetAllIncludeAsync("StudentExam");
+                int exsAvalibleCount = classExams
+                    .Where(c => c.ClassId == cls.Id && c.EndTime >= DateTime.Now).Count(cls => !cls.StudentExam.Any(stdExam => stdExam.userId == user.Id));
+                examAvalibaleCount += exsAvalibleCount;
+
+                int exsPrevieousCount = classExams
+                            .Where(c => c.ClassId == cls.Id).Count(cls => cls.StudentExam.Any(stdExam => stdExam.userId == user.Id));
+            
+                previousExamCount += exsPrevieousCount;
+            }
+
+
+             if (roles.Contains(Roles.Student.ToString()))
+            {
+
+
+                return new ExamCounterViewDto
+                {
+                    examAvalibaleCounter = examAvalibaleCount,
+                    previousExamCounter = previousExamCount,
+                };
+            }
+            return null;
+         
+        }
+
         public async Task<ExamStudentViewDto> GetExamPractices(string studentEmail, int classId, List<int> learningOutcomeIds, int questionCount)
         {
             var user = await _userManager.FindByEmailAsync(studentEmail);
@@ -831,10 +850,15 @@ namespace QuizHub.Utils
             }
 
             //###### validation
-            await _examValidation.isTheStudentLinkedToTheClass(user.Email, classId);
-            await _examValidation.IsLearningOutcomesFounded(cls.SubjectId, learningOutcomeIds);
+            if (cls.SubjectId == null)
+            {
+                throw new InvalidOperationException("There is no subject associated with this class.");
+            }
 
-            ExamStudentViewDto exStudentView = await generateExamPractices(user, classId, cls.SubjectId, learningOutcomeIds, questionCount);
+            await _examValidation.isTheStudentLinkedToTheClass(user.Email, classId);
+            await _examValidation.IsLearningOutcomesFounded(cls.SubjectId.Value, learningOutcomeIds);
+
+            ExamStudentViewDto exStudentView = await generateExamPractices(user, classId, cls.SubjectId.Value, learningOutcomeIds, questionCount);
 
             return exStudentView;
 
@@ -858,7 +882,8 @@ namespace QuizHub.Utils
                 score = cls.Score,
                 duration = cls.Duration,
                 startExam = cls.StartTime,
-                endExam = cls.EndTime
+                endExam = cls.EndTime,
+                isShowResult = cls.showResult
             }).ToList();
 
             foreach (var ex in exs)
@@ -874,6 +899,7 @@ namespace QuizHub.Utils
                     subjectName = cls.Subject.Name,
                     startExame = ex.startExam,
                     endExame = ex.endExam,
+                    isShowResult = ex.isShowResult,
                     userName = userCreateExam.UserName
                 };
                 avalibleExams.Add(aviExam);
@@ -912,6 +938,67 @@ namespace QuizHub.Utils
             }
             return null;
         }
+        public async Task<List<ExamAvalibleDto>> getCompletedExams(string userEmail,int classId)
+        {
+            var user = await _userManager.FindByEmailAsync(userEmail);
+            var roles = await _userManager.GetRolesAsync(user);
+            Class cls = await _classRepo.GetIncludeById(classId, "Subject");
+            if (cls == null)
+            {
+                throw new InvalidOperationException($"class with ID {classId} was not found.");
+            }
+
+            List<ExamAvalibleDto> avalibleExams = new List<ExamAvalibleDto>();
+            var classExams = await _classExamRepo.GetAllIncludeAsync("Exam", "StudentExam");
+
+            var exs = classExams
+                .Where(cls => cls.ClassId == classId && cls.EndTime < DateTime.Now)
+                .Select(cls => new
+                {
+                    exam = cls.Exam,
+                    score = cls.Score,
+                    duration = cls.Duration,
+                    startExam = cls.StartTime,
+                    endExam = cls.EndTime
+                })
+                .ToList();
+
+
+            foreach (var ex in exs)
+            {
+                AppUser userCreateExam = await _userManager.FindByIdAsync(ex.exam.UserId);
+                ExamAvalibleDto aviExam = new ExamAvalibleDto
+                {
+                    Id = ex.exam.Id,
+                    Title = ex.exam.Title,
+                    Description = ex.exam.Description,
+                    score = ex.score,
+                    duration = ex.duration,
+                    subjectName = cls.Subject.Name,
+                    startExame = ex.startExam,
+                    endExame = ex.endExam,
+                    userName = userCreateExam.UserName
+                };
+                avalibleExams.Add(aviExam);
+            }
+
+
+
+
+            if (roles.Contains(Roles.SubAdmin.ToString()))
+            {
+                await _examValidation.CheckSubAdminOwnershipClass(user.Id, classId);
+                if (exs.Count == 0)
+                {
+                    throw new InvalidOperationException("There are no available exams currently for this class.");
+                }
+                return avalibleExams;
+
+            }
+            return null;
+        }
+
+
 
         // ################################# this function resued ################################################################
         private async Task<ExamViewDto> generateExam(ExamCreateDto model, Subject subject, AppUser user)
@@ -1029,7 +1116,11 @@ namespace QuizHub.Utils
         private async Task<List<Question>> ShuffleQuestions(List<Question> questions)
         {
             var random = new Random();
-            var shuffledIds = questions.OrderBy(q => random.Next()).Select(q => q.Id).ToList();
+
+            var shuffledIds = questions
+                .OrderBy(q => random.Next())
+                .Select(q => q.Id)
+                .ToList();
 
             var questionsWithAnswer = await _questionRepo.GetAllIncludeAsync("Answers");
 
@@ -1037,10 +1128,18 @@ namespace QuizHub.Utils
                 .Where(q => shuffledIds.Contains(q.Id))
                 .ToList();
 
+            foreach (var question in questionsWithAnswers)
+            {
+                question.Answers = question.Answers
+                    .OrderBy(a => random.Next())
+                    .ToList();
+            }
+
             return shuffledIds
                 .Select(id => questionsWithAnswers.First(q => q.Id == id))
                 .ToList();
         }
+
 
 
         private void ValidateAvailability(List<Question> questions, int requiredCount, string difficulty)

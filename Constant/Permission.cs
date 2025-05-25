@@ -99,6 +99,8 @@ namespace QuizHub.Constant
                 allPermission.Add($"{PermissionPolicyPrefix}.{Modules.Exam}.Puplish Exam");
                 allPermission.Add($"{PermissionPolicyPrefix}.{Modules.Exam}.View Available");
                 allPermission.Add($"{PermissionPolicyPrefix}.{Modules.Exam}.Result");
+                allPermission.Add($"{PermissionPolicyPrefix}.{Modules.Exam}.Display Attendance");
+
 
 
                 allPermission.Add($"{PermissionPolicyPrefix}.{Modules.Subject}.View");
