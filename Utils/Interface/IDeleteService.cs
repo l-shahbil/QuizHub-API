@@ -6,5 +6,8 @@ namespace QuizHub.Utils.Interface
     {
         Task deleteSudent(AppUser user);
         Task deleteClass(Class classs);
+        Task deleteExam(Exam ex);
+        Task deleteBatch(Batch batch);
+        Task deleteDepartment(Department department);
     }
 }

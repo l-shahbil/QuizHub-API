@@ -4,6 +4,7 @@ using QuizHub.Constant;
 using QuizHub.Data.Repository.Base;
 using QuizHub.Models;
 using QuizHub.Models.DTO.College;
+using QuizHub.Utils.Interface;
 using System.Security.Policy;
 
 namespace QuizHub.Services.Admin_Services.Interface
@@ -14,13 +15,16 @@ namespace QuizHub.Services.Admin_Services.Interface
         private readonly UserManager<AppUser> _userManager;
         private readonly IRepository<Department> _departmentRepo;
         private readonly IRepository<UserDepartment> _userDepartmentRepo;
+        private readonly IDeleteService _deleteService;
 
-        public CollegeService(IRepository<College> collegeRepo,UserManager<AppUser> userManger,IRepository<Department> departmentRepo,IRepository<UserDepartment> userDepartmentRepo)
+        public CollegeService(IRepository<College> collegeRepo,UserManager<AppUser> userManger,IRepository<Department> departmentRepo,
+            IRepository<UserDepartment> userDepartmentRepo,IDeleteService deleteService)
         {
             _collegeRepo = collegeRepo;
             _userManager = userManger;
             _departmentRepo = departmentRepo;
             _userDepartmentRepo = userDepartmentRepo;
+            _deleteService = deleteService;
         }
         public async Task<College> AddCollegeAsync(CreateCollegeDto model)
         {
@@ -42,12 +46,16 @@ namespace QuizHub.Services.Admin_Services.Interface
 
         public async Task<bool> DeleteCollegeAsync(int id)
         {
-            College college = await _collegeRepo.GetByIdAsync(id);
+            College college = await _collegeRepo.GetIncludeById(id, "Departments");
             if (college == null)
             {
                 return false;
             }
 
+            foreach (Department dept in college.Departments)
+            {
+                await _deleteService.deleteDepartment(dept);
+            }
             _collegeRepo.DeleteEntity(college);
             return true;
         }

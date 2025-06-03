@@ -52,7 +52,13 @@ namespace QuizHub.Controllers
             var userEmail = User.FindFirst(ClaimTypes.Email).Value;
             ShowMe userShowMe = await _authenticationService.showMe(userEmail);
 
+            if (userShowMe !=null)
+            {
+
             return Ok(userShowMe);
+            }
+
+            return NotFound("User is not found.");
         }
 
         [Authorize] 

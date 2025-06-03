@@ -69,17 +69,18 @@ namespace QuizHub.Services.Admin_Services.Interface
         public async Task<bool> DeleteSubAdminAsync(string userName)
         {
             AppUser user =await _userManager.FindByEmailAsync(userName);
-            if (user == null) {
+            if (user == null || user.IsDeleted) {
                 return false;
             }
-            await _userManager.DeleteAsync(user);
+            user.IsDeleted = true;
+            await _userManager.UpdateAsync(user);
             return true;
         }
 
         public async Task<GetSubAdminDto> EditSubAdminAsync(string userName, UpdateSubAdminDto model)
         {
             var subAdmin = await _userManager.FindByEmailAsync(userName);
-            if (subAdmin == null)
+            if (subAdmin == null || subAdmin.IsDeleted)
             {
                 throw new ArgumentException("SubAdmin is not found");
             }
@@ -101,6 +102,7 @@ namespace QuizHub.Services.Admin_Services.Interface
                 }
 
                 subAdmin.Email = model.Email;
+                subAdmin.UserName = model.Email;
             }
             subAdmin.FirstName = string.IsNullOrWhiteSpace(model.FirstName) ? subAdmin.FirstName : model.FirstName;
             subAdmin.LastName = string.IsNullOrWhiteSpace(model.LastName) ? subAdmin.LastName : model.LastName;
@@ -146,7 +148,7 @@ namespace QuizHub.Services.Admin_Services.Interface
         public async Task<GetSubAdminDto>GetSubAdminByNameAsync(string userName)
         {
             AppUser userIsFind =await _userManager.FindByEmailAsync(userName);
-            if (userIsFind == null)
+            if (userIsFind == null || userIsFind.IsDeleted)
             {
                 return null;
             }
@@ -167,7 +169,7 @@ namespace QuizHub.Services.Admin_Services.Interface
             var users = await _repoUser.GetAllIncludeAsync("departments");
 
             var filteredSubAdmins = users
-                .Where(u => _userManager.IsInRoleAsync(u, Roles.SubAdmin.ToString()).Result)
+                .Where(u => _userManager.IsInRoleAsync(u, Roles.SubAdmin.ToString()).Result && u.IsDeleted ==false)
                 .Select(x => new GetSubAdminDto
                 {
                     FirstName = x.FirstName,

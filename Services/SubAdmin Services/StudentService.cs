@@ -170,6 +170,7 @@ namespace QuizHub.Services.SubAdmin_Services
                     throw new ArgumentException("Username already exists.");
                 }
                 student.Email = model.Email;
+                student.UserName = model.Email;
             }
 
             student.FirstName = string.IsNullOrWhiteSpace(model.FirstName) ? student.FirstName : model.FirstName;

@@ -1,13 +1,17 @@
 ﻿
+using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Conventions;
+using NuGet.DependencyResolver;
 using QuizHub.Constant;
 using QuizHub.Data.Repository.Base;
 using QuizHub.Models;
 using QuizHub.Models.DTO.Department;
 using QuizHub.Models.DTO.Subject;
 using QuizHub.Models.DTO.User.Teacher;
+using QuizHub.Utils.Interface;
 using System.Security.Policy;
 
 namespace QuizHub.Services.Admin_Services.Interface
@@ -20,8 +24,17 @@ namespace QuizHub.Services.Admin_Services.Interface
         private readonly UserManager<AppUser> _userManager;
         private readonly IRepository<UserDepartment> _userDepartment;
         private readonly IRepository<Subject> _subjectRepo;
+        private readonly IRepository<AppUser> _teacherRepo;
+        private readonly IRepository<Class> _classRepo;
+        private readonly IRepository<StudentExam> _studentExamRepo;
+        private readonly IDeleteService _deleteService;
+        private readonly IRepository<StudentAnswers> _studentAnswersRepo;
+        private readonly IRepository<ClassExam> _classExamRepo;
 
-        public DepartmentService(IRepository<Department> departmentRepo,IRepository<UserDepartment> userDepartmentRepo, IRepository<College> collegeRepo, UserManager<AppUser> userManager, IRepository<UserDepartment> userDepartment, IRepository<Subject> subjectRepo)
+        public DepartmentService(IRepository<Department> departmentRepo,IRepository<UserDepartment> userDepartmentRepo,
+            IRepository<College> collegeRepo, UserManager<AppUser> userManager, IRepository<UserDepartment> userDepartment,
+            IRepository<Subject> subjectRepo,IRepository<AppUser> teacherRepo,IRepository<Class> classRepo,IRepository<StudentExam> studentExamRepo,
+            IDeleteService deleteService,IRepository<StudentAnswers> studentAnswersRepo,IRepository<ClassExam> classExamRepo)
         {
             _departmentRepo = departmentRepo;
             _userDepartmentRepo = userDepartmentRepo;
@@ -29,6 +42,12 @@ namespace QuizHub.Services.Admin_Services.Interface
             _userManager = userManager;
             _userDepartment = userDepartment;
             _subjectRepo = subjectRepo;
+            _teacherRepo = teacherRepo;
+            _classRepo = classRepo;
+            _studentExamRepo = studentExamRepo;
+            _deleteService = deleteService;
+            _studentAnswersRepo = studentAnswersRepo;
+            _classExamRepo = classExamRepo;
         }
         public async Task<List<DepartmentViewDto>> GetAllDepartmentsAsync()
         {
@@ -43,7 +62,7 @@ namespace QuizHub.Services.Admin_Services.Interface
                     Name = department.Name,
                     Description = department.Description,
                     CollegeName = department.Colleges.Name,
-                    SubAdmin = department.SubAdmin.Email
+                    SubAdmin =department.SubAdmin.IsDeleted?"SubAdmin is deleted" :department.SubAdmin.Email
 
                 });
             }
@@ -62,7 +81,7 @@ namespace QuizHub.Services.Admin_Services.Interface
                     Id = department.Id,
                     Name = department.Name,
                     Description = department.Description,
-                    SubAdmin = department.SubAdmin.Email,
+                    SubAdmin =department.SubAdmin.IsDeleted?"subAdmin is deleted": department.SubAdmin.Email,
                     CollegeName = department.Colleges.Name,
                 };
                 return departmentWithSubAdmin;
@@ -131,7 +150,7 @@ namespace QuizHub.Services.Admin_Services.Interface
                 throw new ArgumentException("College not found");
             }
             var subAdmin = await _userManager.FindByEmailAsync(model.userName);
-            if (subAdmin == null)
+            if (subAdmin == null ||subAdmin.IsDeleted)
             {
                 throw new ArgumentException("SubAdmin not found");
             }
@@ -158,12 +177,13 @@ namespace QuizHub.Services.Admin_Services.Interface
 
         public async Task<bool> DeleteDepartmentAsync(int id)
         {
-            Department Department = await _departmentRepo.GetByIdAsync(id);
+            Department Department = await _departmentRepo.GetIncludeById(id, "Batches");
             if (Department == null)
             {
                 return false;
             }
 
+            await _deleteService.deleteDepartment(Department);
             _departmentRepo.DeleteEntity(Department);
             return true;
         }
@@ -186,8 +206,12 @@ namespace QuizHub.Services.Admin_Services.Interface
 
             if (!string.IsNullOrWhiteSpace(model.SubAdmin))
             {
-                var subAdmin = await _userManager.FindByEmailAsync(model.SubAdmin)
-                    ?? throw new ArgumentException("SubAdmin not found.", nameof(model.SubAdmin));
+                var subAdmin = await _userManager.FindByEmailAsync(model.SubAdmin);
+                if(subAdmin == null || subAdmin.IsDeleted)
+                {
+
+                   throw new ArgumentException("SubAdmin not found.", nameof(model.SubAdmin));
+                }
                 department.SubAdmin = subAdmin;
             }
 
@@ -208,7 +232,7 @@ namespace QuizHub.Services.Admin_Services.Interface
 
 
 
-        public async Task<bool> AddTeacherToDepartmentAsync(int departmentId, string teacherEmail)
+        public async Task<bool> AddTeacherToDepartmentAsync(int departmentId,List<string> teachersEmails)
         {
             var department = await _departmentRepo.GetByIdAsync(departmentId);
             if (department == null)
@@ -216,16 +240,19 @@ namespace QuizHub.Services.Admin_Services.Interface
                 throw new ArgumentException("Department not found.");
             }
 
-            var teacher = await _userManager.FindByEmailAsync(teacherEmail);
-            if (teacher == null)
+            foreach(string teacherEmail in teachersEmails)
             {
-                throw new ArgumentException("Teacher not found.");
+
+            var teacher = await _userManager.FindByEmailAsync(teacherEmail);
+            if (teacher == null || teacher.IsDeleted)
+            {
+                throw new ArgumentException($"{teacherEmail} not found.");
             }
 
             var existingRelation = await _userDepartment.SelecteOne(ud => ud.userId == teacher.Id && ud.departmentId == departmentId);
             if (existingRelation != null)
             {
-                throw new ArgumentException("Teacher is already assigned to this department.");
+                throw new ArgumentException($"{teacherEmail} is already assigned to this department.");
             }
 
             var userDepartment = new UserDepartment
@@ -236,6 +263,7 @@ namespace QuizHub.Services.Admin_Services.Interface
 
             await _userDepartment.AddAsyncEntity(userDepartment);
 
+            }
             return true;
         }
 
@@ -253,7 +281,7 @@ namespace QuizHub.Services.Admin_Services.Interface
             var userDepartment = await _userDepartment.GetAllIncludeAsync("User");
 
             var filteredTeachers = userDepartment
-                .Where(ud => ud.departmentId == departmentId && _userManager.IsInRoleAsync(ud.User, Roles.Teacher.ToString()).Result)
+                .Where(ud => ud.departmentId == departmentId && _userManager.IsInRoleAsync(ud.User, Roles.Teacher.ToString()).Result && ud.User.IsDeleted == false)
                 .Select(ud => new GetTeacherDto
                 {
                     Email = ud.User.Email,
@@ -267,7 +295,7 @@ namespace QuizHub.Services.Admin_Services.Interface
             return filteredTeachers;
         }
 
-       public async Task<bool> DeleteTeacherFromDepartmentAsync(int departmentId, string teacherEmail)
+        public async Task<bool> DeleteTeacherFromDepartmentAsync(int departmentId, string teacherEmail)
         {
 
             var department = await _departmentRepo.GetByIdAsync(departmentId);
@@ -294,7 +322,7 @@ namespace QuizHub.Services.Admin_Services.Interface
             return true;
         }
 
-        public async Task<bool> AddSubjectToDepartmentAsync(int departmentId, int subjectId)
+        public async Task<bool> AddSubjectToDepartmentAsync(int departmentId,List<int> subjectIds)
         {
             var department = await _departmentRepo.GetIncludeById(departmentId, "Subjects");
             if (department == null)
@@ -302,21 +330,25 @@ namespace QuizHub.Services.Admin_Services.Interface
                 throw new ArgumentException("Department not found.");
             }
 
+            foreach(int subjectId in subjectIds)
+            {
+
             var subject = await _subjectRepo.GetByIdAsync(subjectId);
             if (subject == null)
             {
-                throw new ArgumentException("Subject not found.");
+                throw new ArgumentException($"{subject.Name} not found.");
             }
 
             var existingRelation = department.Subjects.Any(s => s.Id == subjectId);
             if (existingRelation)
             {
-                throw new ArgumentException("Subject is already assigned to this department.");
+                throw new ArgumentException($"{subject.Name} is already assigned to this department.");
             }
 
             department.Subjects.Add(subject);
             _departmentRepo.UpdateEntity(department);
 
+            }
             return true;
         }
 
@@ -328,7 +360,7 @@ namespace QuizHub.Services.Admin_Services.Interface
                 throw new ArgumentException("Department not found.");
             }
 
-            var subject = await _subjectRepo.GetByIdAsync(subjectId);
+            Subject subject = await _subjectRepo.GetByIdAsync(subjectId);
             if (subject == null)
             {
                 throw new ArgumentException("Subject not found.");
@@ -340,13 +372,35 @@ namespace QuizHub.Services.Admin_Services.Interface
                 throw new ArgumentException("Subject is not assigned to this department.");
             }
 
+           Subject sbj = await _subjectRepo.GetFirstOrDefaultAsync(
+                filter: s => s.Id == subjectId,
+                include: query => query.Include(s => s.Classes.Where(c => c.DepartmentId == departmentId)).ThenInclude(c => c.ClassExam)
+                .ThenInclude(cE => cE.StudentExam)
+                .ThenInclude(sE => sE.studentAnswers)
+                );
+
+
+            var classes = sbj.Classes.ToList();
+            var classExams = classes.SelectMany(c => c.ClassExam).ToList();
+            var studentsExams = classExams.SelectMany(ce=> ce.StudentExam).ToList();
+            var studenAnswers = studentsExams.SelectMany(se=> se.studentAnswers).ToList();
+
+            _studentAnswersRepo.RemoveRange(studenAnswers);
+            _studentExamRepo.RemoveRange(studentsExams);
+            _classExamRepo.RemoveRange(classExams);
+            
+            foreach(Class cls in classes)
+            {
+                cls.Subject = null;
+                _classRepo.UpdateEntity(cls);
+            }
+
 
             department.Subjects.Remove(subject);
             _departmentRepo.UpdateEntity(department);
 
             return true;
         }
-
         public async Task<List<SubjectViewDto>> GetAllSubjectsInDepartmentAsync(int departmentId)
         {
             var departmentExists = await _departmentRepo.GetIncludeById(departmentId, "Subjects");

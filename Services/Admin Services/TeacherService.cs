@@ -28,7 +28,7 @@ namespace QuizHub.Services.Admin_Services.Interface
             var users = await _repoUser.GetAllIncludeAsync("departments");
 
             var filteredteachers = users
-                .Where(u => _userManager.IsInRoleAsync(u, Roles.Teacher.ToString()).Result)
+                .Where(u => _userManager.IsInRoleAsync(u, Roles.Teacher.ToString()).Result && u.IsDeleted ==false)
                 .Select(x => new GetTeacherDto
                 {
                     FirstName = x.FirstName,
@@ -47,7 +47,7 @@ namespace QuizHub.Services.Admin_Services.Interface
         public async Task<GetTeacherDto> GetTeacherByNameAsync(string userName)
         {
             AppUser userIsFind = await _userManager.FindByEmailAsync(userName);
-            if (userIsFind == null)
+            if (userIsFind == null && userIsFind.IsDeleted)
             {
                 return null;
             }
@@ -111,7 +111,7 @@ namespace QuizHub.Services.Admin_Services.Interface
         public async Task<GetTeacherDto> EditTeacherAsync(string userName, UpdateTeacherDto model)
         {
             var teacher = await _userManager.FindByEmailAsync(userName);
-            if (teacher == null)
+            if (teacher == null || teacher.IsDeleted)
             {
                 throw new ArgumentException ("Teacher is not found");
             }
@@ -133,6 +133,7 @@ namespace QuizHub.Services.Admin_Services.Interface
                 }
 
                 teacher.Email = model.Email;
+                teacher.UserName = model.Email;
             }
             
             teacher.FirstName =string.IsNullOrWhiteSpace(model.FirstName)? teacher.FirstName:model.FirstName;
@@ -181,11 +182,12 @@ namespace QuizHub.Services.Admin_Services.Interface
         public async Task<bool> DeleteTeacherAsync(string userName)
         {
             AppUser user = await _userManager.FindByEmailAsync(userName);
-            if (user == null)
+            if (user == null || user.IsDeleted)
             {
                 return false;
             }
-            await _userManager.DeleteAsync(user);
+            user.IsDeleted = true;
+            await _userManager.UpdateAsync(user);
             return true;
         }
     }

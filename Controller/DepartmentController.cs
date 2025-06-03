@@ -119,13 +119,13 @@ namespace QuizHub.Controllers
             return NoContent();
 
         }
-        [HttpPost("{departmentId}/teachers/{teacherEmail}")]
+        [HttpPost("{departmentId}/teachers")]
         [Authorize("Permission.Teacher.Add To Department")]
-        public async Task<IActionResult> AddTeacherToDepartment(int departmentId, string teacherEmail)
+        public async Task<IActionResult> AddTeacherToDepartment(int departmentId,List<string> teachersEmails)
         {
             try
             {
-                var result = await _departmentService.AddTeacherToDepartmentAsync(departmentId, teacherEmail);
+                var result = await _departmentService.AddTeacherToDepartmentAsync(departmentId, teachersEmails);
 
                 return StatusCode(StatusCodes.Status201Created,"Teacher added to department successfully.");
             }
@@ -133,7 +133,7 @@ namespace QuizHub.Controllers
                 return BadRequest(ex.Message);
             }
         }
-        [HttpDelete("{departmentId}/teachers/{teacherEmail}")]
+        [HttpDelete("{departmentId}/teachers")]
         [Authorize("Permission.Teacher.Delete From Department")]
         public async Task<IActionResult> DeleteTeacherFromDepartment(int departmentId, string teacherEmail)
         {
@@ -173,14 +173,14 @@ namespace QuizHub.Controllers
         }
 
 
-        [HttpPost("{departmentId:int}/subjects/{subjectId:int}")]
+        [HttpPost("{departmentId:int}/subjects")]
         [Authorize("Permission.Subject.Add To Department")]
-        public async Task<IActionResult> AddSubjectToDepartment(int departmentId, int subjectId)
+        public async Task<IActionResult> AddSubjectToDepartment(int departmentId, List<int> subjectIds)
         {
             try
             {
 
-                var result = await _departmentService.AddSubjectToDepartmentAsync(departmentId, subjectId);
+                var result = await _departmentService.AddSubjectToDepartmentAsync(departmentId, subjectIds);
                 return StatusCode(StatusCodes.Status201Created, "Subject added to department successfully.");
             }
             catch (Exception ex) { 
@@ -188,7 +188,7 @@ namespace QuizHub.Controllers
             }
         }
 
-        [HttpDelete("{departmentId:int}/subjects/{subjectId:int}")]
+        [HttpDelete("{departmentId:int}/subjects")]
         [Authorize("Permission.Subject.Delete From Department")]
 
         public async Task<IActionResult> DeleteSubjectFromDepartment(int departmentId, int subjectId)

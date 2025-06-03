@@ -75,6 +75,8 @@ namespace QuizHub
             builder.Services.AddScoped<IExamService, ExamService>();
             builder.Services.AddScoped<IExamValidator, ExamValidator>();
             builder.Services.AddScoped<IDeleteService, DeleteService>();
+            builder.Services.AddScoped<IReportService, ReportService>();
+            
 
 
 

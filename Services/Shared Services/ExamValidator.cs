@@ -71,7 +71,7 @@ namespace QuizHub.Services.Shared_Services
         public async Task<bool> IsSubjectAssignedToDepartment(int subjectId, int departmentId)
         {
             var existDepartment = await _departmentRepo.GetIncludeById(departmentId, "Subjects");
-            if (existDepartment != null)
+            if (existDepartment == null)
             {
                 throw new KeyNotFoundException("department is not found.");
             }
@@ -206,10 +206,10 @@ namespace QuizHub.Services.Shared_Services
 
                 if (clasExam != null ) 
                 {
-                    if(clasExam.EndTime >= DateTime.Now)
-                    {
+                    //if(clasExam.EndTime >= DateTime.Now)
+                    //{
                     throw new InvalidOperationException($"The exam has been published on this class.");
-                    }
+                    //}
                    
                 }
             }
@@ -258,12 +258,12 @@ namespace QuizHub.Services.Shared_Services
             ClassExam clsExam = clsExams.FirstOrDefault(ce=> ce.ExamId == stdExam.clsExamExamId && ce.ClassId == stdExam.clsExamClassId)!;
 
             var examEnd = clsExam.EndTime + clsExam.Duration;
-            if (examEnd < DateTime.Now)
+            if (examEnd <= DateTime.Now.AddSeconds(30))
             {
                 throw new InvalidOperationException("The exam period has ended. You can no longer access this exam.");
             }
 
-            if(durationStudent > clsExam.Duration)
+            if(durationStudent > clsExam.Duration.Add(TimeSpan.FromSeconds(30)))
             {
                 throw new InvalidOperationException("You have exceeded the allowed time for the exam. Your attempt is no longer valid.");
             }

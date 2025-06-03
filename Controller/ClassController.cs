@@ -162,7 +162,7 @@ namespace QuizHub.Controllers
 
         [HttpPost("{departmentId:int}/{classId:int}/students")]
         [Authorize("Permission.Student.Create")]
-            public async Task<IActionResult> AddStudentToClass(int departmentId, int classId, string studentEmail)
+            public async Task<IActionResult> AddStudentToClass(int departmentId, int classId,List<string> studentsEmails)
             {
             try
             {
@@ -171,7 +171,7 @@ namespace QuizHub.Controllers
                 {
                     return Unauthorized("Invalid user token.");
                 }
-                await _classService.AddStudentToClass(departmentId, subAdminEmail, classId, studentEmail);
+                await _classService.AddStudentToClass(departmentId, subAdminEmail, classId, studentsEmails);
                 return Ok("Student added successfully.");
             }
             catch (UnauthorizedAccessException ex)
@@ -236,7 +236,7 @@ namespace QuizHub.Controllers
                 {
                     return BadRequest(ex.Message);
                 }
-                catch (Exception ex)
+                catch (Exception)
                 {
                     return StatusCode(500, "An unexpected error occurred.");
                 }

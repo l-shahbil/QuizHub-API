@@ -16,10 +16,10 @@ namespace QuizHub.Services.Admin_Services.Interface
 
         Task<DepartmentViewDto> EditDepartmentAsync(int id, DepartmentUpdateDto model);
         Task<bool> DeleteDepartmentAsync(int id);
-        Task<bool> AddTeacherToDepartmentAsync(int departmentId, string teacherEmail);
+        Task<bool> AddTeacherToDepartmentAsync(int departmentId, List<string> teachersEmails);
         Task<bool> DeleteTeacherFromDepartmentAsync(int departmentId, string teacherEmail);
         Task<List<GetTeacherDto>> GetAllTeachersInDepartmentAsync( int departmentId);
-        Task<bool> AddSubjectToDepartmentAsync(int departmentId, int subjectId);
+        Task<bool> AddSubjectToDepartmentAsync(int departmentId, List<int> subjectIds);
         Task<bool> DeleteSubjectFromDepartmentAsync(int departmentId, int subjectId);
         Task<List<SubjectViewDto>> GetAllSubjectsInDepartmentAsync(int departmentId);
 
