@@ -138,21 +138,6 @@ namespace QuizHub.Services.Admin_Services
 
                     return subjects;
                 }
-                else if (roles.Contains(Roles.SubAdmin.ToString()))
-                {
-                    var departments = await _departmentRepo.GetAllIncludeAsync("Subjects");
-
-                    subjects = departments
-                        .Where(d => d.subAdminId == user.Id)
-                        .SelectMany(d => d.Subjects)
-                        .Select(s => new SubjectViewDto
-                        {
-                            Id = s.Id,
-                            Name = s.Name,
-                            Description = s.Description
-                        }).ToList();
-                }
-               
                 return subjects;
             
         }

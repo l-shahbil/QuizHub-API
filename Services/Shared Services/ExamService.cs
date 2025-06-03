@@ -664,7 +664,7 @@ namespace QuizHub.Utils
             List<ExamViewInSubjecDto> exams = new List<ExamViewInSubjecDto>();
             var user = await _userManager.FindByEmailAsync(userEmail);
             var roles = await _userManager.GetRolesAsync(user);
-            Subject subject = await _subjectRepo.GetIncludeById(subjectId, "Exams");
+            Subject subject = await _subjectRepo.GetIncludeById(subjectId,"Exams");
             if (subject == null)
             {
                 throw new InvalidOperationException($"subject with ID {subjectId} was not found.");
@@ -674,6 +674,10 @@ namespace QuizHub.Utils
             if (roles.Contains(Roles.SubAdmin.ToString()))
             {
                 await _examValidation.CheckSubAdminOwnershipDepartment(userEmail, departmentId);
+                if(subject.Exams.Count == 0)
+                {
+                    return null;
+                }
                 exams = await getAllExamsInSubject(subject.Exams.ToList());
 
             }
@@ -681,6 +685,10 @@ namespace QuizHub.Utils
             {
 
                 await _examValidation.IsTheTeacherLinkedToTheSubject(user.Id, subjectId);
+                if (subject.Exams.Count == 0)
+                {
+                    return null;
+                }
                 exams = await getAllExamsInSubject(subject.Exams.ToList());
             }
 
@@ -1071,7 +1079,7 @@ namespace QuizHub.Utils
 
             var easyQuestions = FilterByDifficulty(questionsInRange, 0, 0.4m);
             var mediumQuestions = FilterByDifficulty(questionsInRange, 0.4m, 0.7m);
-            var hardQuestions = FilterByDifficulty(questionsInRange, 0.7m, 0.1m);
+            var hardQuestions = FilterByDifficulty(questionsInRange, 0.7m, 1m);
 
             ValidateAvailability(easyQuestions, easyCount, "easy");
             ValidateAvailability(mediumQuestions, mediumCount, "medium");
@@ -1156,6 +1164,10 @@ namespace QuizHub.Utils
             List<ExamViewInSubjecDto> exams = new List<ExamViewInSubjecDto>();
             foreach (Exam ex in exs)
             {
+                if(ex.UserId == null)
+                {
+                    continue;
+                }
                 var userExam = await _userManager.FindByIdAsync(ex.UserId);
 
                 var exam = new ExamViewInSubjecDto

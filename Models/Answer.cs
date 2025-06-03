@@ -6,7 +6,7 @@ namespace QuizHub.Models
     public class Answer
     {
         public int Id { get; set; }
-        [Required,StringLength(50)]
+        [Required]
         public string AnswerText { get; set; }
         public bool IsCorrect { get; set; }
         public int QuestionId { get; set; }

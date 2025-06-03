@@ -21,6 +21,7 @@ namespace QuizHub.Models
         public decimal ClarityRangeFrom { get; set; }
         [Required]
         public decimal ClarityRangeTo { get; set; }
+        //public int examType { get; set; }
 
         public int questionCount { get; set; }
 

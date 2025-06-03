@@ -206,10 +206,10 @@ namespace QuizHub.Services.SubAdmin_Services
        {
            Id = c.Id,
            Name = c.Name,
-           TeacherName = c.Teacher.IsDeleted ? "Teacher is deleted" : $"{c.Teacher.FirstName} {c.Teacher.LastName}",
-           TeacherEmail = c.Teacher.IsDeleted ? "Teacher is deleted" : c.Teacher.Email,
-           subjectId = c.Subject.Id,
-           SubjectName = c.Subject.Name,
+           TeacherName = c.Teacher.IsDeleted ? "لايوجد معلم" : $"{c.Teacher?.FirstName} {c.Teacher?.LastName}",
+           TeacherEmail = c.Teacher.IsDeleted ? "لايوجد معلم" : c.Teacher?.Email,
+           subjectId = c.Subject?.Id,
+           SubjectName = c.Subject?.Name ?? "لاتوجد مادة"
        })
        .ToList();
 
@@ -237,10 +237,10 @@ namespace QuizHub.Services.SubAdmin_Services
        {
            Id = c.Id,
            Name = c.Name,
-           TeacherName = $"{user.FirstName} {user.LastName}",
-           TeacherEmail = c.Teacher.IsDeleted ? "Teacher is deleted" : user.Email,
-           subjectId = c.Subject.Id,
-           SubjectName = c.Teacher.IsDeleted ? "Teacher is deleted" : c.Subject.Name,
+           TeacherName = c.Teacher.IsDeleted ? "لايوجد معلم" : $"{c.Teacher?.FirstName} {c.Teacher?.LastName}",
+           TeacherEmail = c.Teacher.IsDeleted ? "لايوجد معلم" : c.Teacher?.Email,
+           subjectId = c.Subject?.Id,
+           SubjectName = c.Subject?.Name ?? "لاتوجد مادة"
        })
        .ToList();
 
@@ -260,10 +260,10 @@ namespace QuizHub.Services.SubAdmin_Services
                 Id = cls.Id,
                 Name = cls.Name,
                 Description = cls.Description,
-                TeacherName = cls.Teacher.IsDeleted ? "Teacher is deleted" : $"{cls.Teacher?.FirstName} {cls.Teacher?.LastName}",
-                TeacherEmail =cls.Teacher.IsDeleted? "Teacher is deleted" : cls.Teacher?.Email,
-                subjectId = cls.Subject.Id,
-                SubjectName = cls.Subject?.Name
+                TeacherName = cls.Teacher.IsDeleted ? "لايوجد معلم" : $"{cls.Teacher?.FirstName} {cls.Teacher?.LastName}",
+                TeacherEmail =cls.Teacher.IsDeleted? "لايوجد معلم" : cls.Teacher?.Email,
+                subjectId = cls.Subject?.Id,
+                SubjectName = cls.Subject?.Name ?? "لاتوجد مادة"
             }).ToList();
 
             return allClassForStudent;

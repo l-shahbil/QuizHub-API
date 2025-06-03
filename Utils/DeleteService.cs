@@ -56,25 +56,29 @@ namespace QuizHub.Utils
                   std => std.Id == user.Id,
                   include: query => query.Include(s => s.StudentClasses).Include(s => s.StudentAnswers)
                   .Include(s => s.studentExams)
-                  .Include(s=> s.userDepartments),
+                  .Include(s=> s.userDepartments)
+                  .Include(s=> s.Exams),
                   asNoTracking: false
               );
 
             List<StudentClass> stdClasses = student.StudentClasses.ToList();
             List<StudentAnswers> stdAnswers = student.StudentAnswers.ToList();
             List<StudentExam> stdExams = student.studentExams.ToList();
-
-
+                List<Exam> exams = student.Exams.ToList();
 
             _studentAnswerRepo.RemoveRange(stdAnswers);
             _studentExamRepo.RemoveRange(stdExams);
                 _studentClassRepo.RemoveRange(stdClasses);
+              
+                foreach(Exam ex in exams)
+                {
+                    await deleteExam(ex);
+                }
 
-                foreach(UserDepartment ud in student.userDepartments)
+                foreach (UserDepartment ud in student.userDepartments)
                 {
                     _userDepartmentRepo.DeleteEntity(ud);
                 }
-
             await _userManager.DeleteAsync(user);
 
             }catch(Exception ex)

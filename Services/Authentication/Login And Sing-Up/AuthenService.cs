@@ -91,12 +91,16 @@ namespace QuizHub.Services.Authentication.Login_And_Sing_Up
         public async Task<ShowMe> showMe(string userEmail)
         {
             var user = await _userManager.FindByEmailAsync(userEmail);
-            return new ShowMe
+            if(user != null || user.IsDeleted)
             {
-                Name = $"{user.FirstName} {user.LastName}",
-                Email = user.Email
+                return new ShowMe
+                {
+                    Name = $"{user.FirstName} {user.LastName}",
+                    Email = user.Email
 
-            };
+                };
+            }
+            return null;
         }
         public async Task<bool> resetPassword(string userEmail,ResetPasswordDto model)
         {

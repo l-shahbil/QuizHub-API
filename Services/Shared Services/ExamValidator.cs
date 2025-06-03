@@ -258,7 +258,7 @@ namespace QuizHub.Services.Shared_Services
             ClassExam clsExam = clsExams.FirstOrDefault(ce=> ce.ExamId == stdExam.clsExamExamId && ce.ClassId == stdExam.clsExamClassId)!;
 
             var examEnd = clsExam.EndTime + clsExam.Duration;
-            if (examEnd < DateTime.Now.AddSeconds(30))
+            if (examEnd <= DateTime.Now.AddSeconds(30))
             {
                 throw new InvalidOperationException("The exam period has ended. You can no longer access this exam.");
             }

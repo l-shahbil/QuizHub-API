@@ -133,6 +133,7 @@ namespace QuizHub.Services.Admin_Services.Interface
                 }
 
                 teacher.Email = model.Email;
+                teacher.UserName = model.Email;
             }
             
             teacher.FirstName =string.IsNullOrWhiteSpace(model.FirstName)? teacher.FirstName:model.FirstName;

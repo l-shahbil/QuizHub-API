@@ -49,10 +49,10 @@ namespace QuizHub.Services.SubAdmin_Services
 
 
 
-            int clsStudentCount = clsEx.Class.StudentClasses.Count() -1;//-1 in order the teacher is linked class
+            int clsStudentCount = clsEx.Class.StudentClasses.Count();
             int StudentsWhoAttendedCount = StudentsWhoAttended.Count();
             int StudentsWhoDidNotAttendCount = clsStudentCount - StudentsWhoAttendedCount;
-            decimal totalStudentScore = StudentsWhoAttended.Sum(se => se.Score);
+                decimal totalStudentScore = StudentsWhoAttended.Sum(se => se.Score);
             decimal averageScore = 0;
             decimal passRate = 0;
             decimal passMark = clsEx.Score / 2;
@@ -73,7 +73,7 @@ namespace QuizHub.Services.SubAdmin_Services
             }
             if (StudentsWhoAttendedCount != 0)
             {
-                passRate = numberOfStudentsEWoPassed / StudentsWhoAttendedCount;
+                passRate =(decimal)numberOfStudentsEWoPassed / StudentsWhoAttendedCount;
 
             }
       
@@ -82,9 +82,9 @@ namespace QuizHub.Services.SubAdmin_Services
             {
                 TotalStudentsInClass = clsStudentCount,
                 StudentsWhoAttended =StudentsWhoAttendedCount,
-                StudentsWhoDidNotAttend =StudentsWhoAttendedCount,
+                StudentsWhoDidNotAttend =StudentsWhoDidNotAttendCount,
                 AverageScore = averageScore,
-                PassRate = passRate,
+                PassRate = $"%{100* passRate}",
                 TopScore =topScore,
                 LowestScore = lowestScore
 

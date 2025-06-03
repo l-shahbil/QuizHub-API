@@ -102,6 +102,7 @@ namespace QuizHub.Services.Admin_Services.Interface
                 }
 
                 subAdmin.Email = model.Email;
+                subAdmin.UserName = model.Email;
             }
             subAdmin.FirstName = string.IsNullOrWhiteSpace(model.FirstName) ? subAdmin.FirstName : model.FirstName;
             subAdmin.LastName = string.IsNullOrWhiteSpace(model.LastName) ? subAdmin.LastName : model.LastName;

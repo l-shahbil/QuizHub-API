@@ -10,6 +10,7 @@ using QuizHub.Models.DTO.Answer;
 using static QuizHub.Services.Shared_Services.QuestionService;
 using System.Text.Json;
 using System.Text;
+using Microsoft.EntityFrameworkCore;
 
 
 namespace QuizHub.Services.Shared_Services
@@ -20,6 +21,7 @@ namespace QuizHub.Services.Shared_Services
 
         private readonly UserManager<AppUser> _userManager;
         private readonly IRepository<Question> _questionRepo;
+        private readonly IRepository<Exam> _examRepo;
         private readonly IRepository<Subject> _subjectRepo;
         private readonly IRepository<Department> _departmentRepo;
         private readonly IRepository<Class> _calssRepo;
@@ -28,12 +30,13 @@ namespace QuizHub.Services.Shared_Services
         private readonly HttpClient _httpClient;
         private readonly string _modeApilUrl;
 
-        public QuestionService(UserManager<AppUser> userManager, IRepository<Question> questionRepo,
+        public QuestionService(UserManager<AppUser> userManager, IRepository<Question> questionRepo,IRepository<Exam> examRepo,
             IRepository<Subject>subjectRepo, IRepository<Department> departmentRepo, IRepository<Class> calssRepo
             ,IRepository<LearningOutcomes> learningOutComesRepo,IAnswerService answerService, HttpClient httpClient, IConfiguration configuration)
         {
             _userManager = userManager;
             _questionRepo = questionRepo;
+            _examRepo = examRepo;
             _subjectRepo = subjectRepo;
             _departmentRepo = departmentRepo;
             _calssRepo = calssRepo;
@@ -172,18 +175,69 @@ namespace QuizHub.Services.Shared_Services
             {
                 throw new KeyNotFoundException($"A Question with ID {questionId} not found.");
             }
-
             AppUser user = await _userManager.FindByEmailAsync(userEmail);
             var roles = await _userManager.GetRolesAsync(user);
+            Question qest = await _questionRepo.GetFirstOrDefaultAsync(
+                filter: q => q.Id == questionId,
+                include: query => query.Include(q=> q.ExamQuestions).ThenInclude(Ex=> Ex.Exam)
+                );
+
+            List<Exam> exams = question.ExamQuestions
+                .Select(exq => exq.Exam)
+                .Where(ex => ex != null)
+                .ToList();
+
             if (roles.Contains(Roles.SubAdmin.ToString()))
             {
-                _questionRepo.DeleteEntity(question);
+                foreach(Exam ex in exams)
+                {
+                    ex.questionCount -= 1;
+
+                    if (question.Difficulty < Convert.ToDecimal(0.40))
+                    {
+                        ex.NumberOfEasyQuestions -= 1;
+                    }
+                    else if (question.Difficulty < Convert.ToDecimal(0.69))
+                    {
+                        ex.NumberOfMediumLevelQuestions -= 1;
+                    }
+                    else if (question.Difficulty > Convert.ToDecimal(0.69))
+                    {
+                        ex.NumberOfDifficultQuestions -= 1;
+                    }
+
+                     _examRepo.UpdateEntity(ex);
+                }
+                
+
+
+                    _questionRepo.DeleteEntity(question);
                 return true;
             }
             else if (roles.Contains(Roles.Teacher.ToString())) {
                 if(question.userId != user.Id)
                 {
                     throw new UnauthorizedAccessException("You are not authorized to perform this action on this question.");
+                }
+
+                foreach (Exam ex in exams)
+                {
+                    ex.questionCount -= 1;
+
+                    if (question.Difficulty < Convert.ToDecimal(0.40))
+                    {
+                        ex.NumberOfEasyQuestions -= 1;
+                    }
+                    else if (question.Difficulty < Convert.ToDecimal(0.69))
+                    {
+                        ex.NumberOfMediumLevelQuestions -= 1;
+                    }
+                    else if (question.Difficulty > Convert.ToDecimal(0.69))
+                    {
+                        ex.NumberOfDifficultQuestions -= 1;
+                    }
+
+                    _examRepo.UpdateEntity(ex);
                 }
                 _questionRepo.DeleteEntity(question);
                 return true;

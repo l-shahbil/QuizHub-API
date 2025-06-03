@@ -1,4 +1,5 @@
 ﻿using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Microsoft.EntityFrameworkCore;
 using QuizHub.Data.Repository.Base;
 using QuizHub.Models;
 using QuizHub.Models.DTO.LearingOutComes;
@@ -13,12 +14,17 @@ namespace QuizHub.Services.Admin_Services
         private readonly IRepository<LearningOutcomes> _learningOutComesRepo;
         private readonly IRepository<Subject> _subjectRepo;
         private readonly IRepository<Question> _questionRepo;
+        private readonly IRepository<StudentAnswers> _studentAnswerRepo;
+        private readonly IRepository<Answer> _answerRepo;
 
-        public LearningOutComesService(IRepository<LearningOutcomes> learningOutComesRepo,IRepository<Subject>subjectRepo,IRepository<Question> questionRepo)
+        public LearningOutComesService(IRepository<LearningOutcomes> learningOutComesRepo,IRepository<Subject>subjectRepo,IRepository<Question> questionRepo
+            ,IRepository<StudentAnswers> studentAnswerRepo,IRepository<Answer> answerRepo)
         {
             _learningOutComesRepo = learningOutComesRepo;
             _subjectRepo = subjectRepo;
             _questionRepo = questionRepo;
+            _studentAnswerRepo = studentAnswerRepo;
+            _answerRepo = answerRepo;
         }
         public async Task<LearningOutComesViewDto> AddLearningOutComesAsync(int subjectId, LearningOutComesCreateDto model)
         {
@@ -51,12 +57,29 @@ namespace QuizHub.Services.Admin_Services
 
         public async Task<bool> DeleteLearningOutComesAsync(int id)
         {
-            LearningOutcomes learingOutcomes = await _learningOutComesRepo.GetByIdAsync(id);
+            LearningOutcomes learingOutcomes = await _learningOutComesRepo.GetFirstOrDefaultAsync(
+                    filter:l=> l.Id ==id,
+                    include:query=> query.Include(l=> l.Questions).ThenInclude(q=> q.Answers)
+                    .Include(l=> l.Questions).ThenInclude(q=> q.StudentAnswers)
+                );
             if (learingOutcomes == null)
             {
                 return false;
             }
 
+            List<Question> questions = learingOutcomes.Questions.ToList();
+            List<Answer> answers = questions.SelectMany(q => q.Answers).ToList();
+            List<StudentAnswers> studentAnswers = questions.SelectMany(q => q.StudentAnswers).ToList();
+
+
+
+            _studentAnswerRepo.RemoveRange(studentAnswers);
+            //foreach (Exam ex in subj.Exams)
+            //{
+            //    await _deleteService.deleteExam(ex);
+            //}
+            _answerRepo.RemoveRange(answers);
+            _questionRepo.RemoveRange(questions);
             _learningOutComesRepo.DeleteEntity(learingOutcomes);
             return true;
         }

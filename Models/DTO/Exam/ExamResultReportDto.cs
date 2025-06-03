@@ -3,7 +3,7 @@
     public class ExamResultReportDto
     {
         public decimal AverageScore { get; set; }
-        public decimal PassRate { get; set; }
+        public string PassRate { get; set; }
         public decimal TopScore { get; set; }
         public decimal LowestScore { get; set; }
 
